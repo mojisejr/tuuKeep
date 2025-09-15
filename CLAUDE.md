@@ -241,6 +241,7 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 
 #### Pre-Implementation Checks
 
+- ✅ **CRITICAL**: Verify Node.js version for contract work (`node --version` must be 22.10.0+)
 - ✅ Verify GitHub Task Issue exists and is properly formatted
 - ✅ Ensure no conflicting branches exist
 - ✅ Confirm GitHub CLI is authenticated and functional
@@ -316,6 +317,18 @@ npm run lint
 
 ### Smart Contract Development
 
+**⚠️ CRITICAL: Node.js Version Requirement**
+```bash
+# ALWAYS verify Node.js version before contract work
+node --version  # Must be 22.10.0+ for Hardhat 3.0
+
+# If version is wrong, switch to Node.js 22:
+nvm use v22
+
+# After version switch, reinstall dependencies:
+cd contracts && rm -rf node_modules && npm install
+```
+
 ```bash
 # Navigate to contracts folder
 cd contracts
@@ -389,9 +402,10 @@ node -e "import('./scripts/interact.js')"
 
 ## 📚 Best Practices
 
-### TodoWrite Integration (56% faster implementations)
-**Use for**: Complex multi-step tasks, security audits, large refactoring
-**Pattern**: 5-12 todos, exactly ONE in_progress, real-time visibility
+### TodoWrite Integration (Proven 9/10 success rate)
+**Use for**: Complex multi-step tasks, security audits, large refactoring, smart contract implementations
+**Optimal Pattern**: 8-10 structured todos, exactly ONE in_progress, complete immediately after finishing
+**High Success Indicators**: Real-time progress tracking, stakeholder visibility, accountability for all steps
 
 ### Pattern Replication Strategy
 1. Document successful patterns in `/docs/retrospective/`
@@ -400,14 +414,18 @@ node -e "import('./scripts/interact.js')"
 4. Measure efficiency improvements
 
 ### Build Validation Checkpoints
+- **Node Version**: `node --version` must be 22.10.0+ for Hardhat 3.0
+- **Contract Compilation**: `npm run build` after OpenZeppelin dependency changes
 - **Schema Changes**: `npm run build && npx tsc --noEmit`
 - **Incremental Testing**: Build after each major change
 - **Database Sync**: `npx prisma generate` after schema changes
 
 ### Smart Contract Security
-- Access control, reentrancy protection, gas optimization
-- Unit + integration tests, edge case testing
-- Test on local/testnet before mainnet
+- **Multi-entropy randomness**: block.prevrandao + timestamp + nonce + sender + requestId
+- **Access control**: OpenZeppelin AccessControl with role-based permissions
+- **Comprehensive testing**: Both Solidity (Foundry) + TypeScript (viem) test suites
+- **Gas optimization**: Target <50k per call, validate on testnet deployment
+- **Event emission**: Complete audit trail for all operations
 
 ### Multi-Phase Implementation (4-phase approach)
 1. Analysis & Preparation (10-15%)
@@ -427,6 +445,8 @@ npx prisma generate  # Reset Prisma
 ```
 
 ### Smart Contract Issues
+- **Node Version Error**: `TypeError: this[#dependenciesMap].values(...).flatMap is not a function`
+  - Solution: `nvm use v22 && cd contracts && rm -rf node_modules && npm install`
 - **Deployment**: Test locally first (`npx hardhat node`)
 - **ABI Sync**: Regenerate types after redeployment
 - **Network Config**: Verify Hardhat configuration
