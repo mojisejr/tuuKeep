@@ -36,6 +36,20 @@ const config: HardhatUserConfig = {
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
     },
+    kubTestnet: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("KUB_TESTNET_RPC_URL", "https://rpc-testnet.bitkubchain.io"),
+      accounts: [configVariable("KUB_TESTNET_PRIVATE_KEY")],
+      chainId: 25925,
+    },
+    kubMainnet: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("KUB_MAINNET_RPC_URL", "https://rpc.bitkubchain.io"),
+      accounts: [configVariable("KUB_MAINNET_PRIVATE_KEY")],
+      chainId: 96,
+    },
   },
 };
 

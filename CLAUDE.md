@@ -3,7 +3,7 @@
 
 **Project Name**: TuuKeep - Decentralized Gachapon Platform
 
-**Repository**: https://github.com/user/tookeep-kub
+**Repository**: https://github.com/mojisejr/tuuKeep 
 
 **Description**: TuuKeep is a Decentralized Gachapon (TuuKeep) platform built on the blockchain, allowing users to own **Gachapon Cabinet NFTs**. These NFTs are not just collectibles; they are income-generating assets. Cabinet owners can fill their machines with various assets, including other NFTs and crypto tokens, and open them up for players to pay and receive a random item.
 
@@ -61,8 +61,50 @@ This ensures accurate timestamp synchronization with the system clock and preven
 - **UI Framework**: shadcn/ui components with neon arcade theming
 - **Web3 Integration**: wagmi, viem, @tanstack/react-query for blockchain interactions
 - **Smart Contracts**: Solidity with Hardhat for development and testing
+- **Development Tools**:
+  - TypeScript 5.x strict mode with path mapping (@/* aliases)
+  - ESLint 8.x with Next.js and TypeScript configurations
+  - Class Variance Authority (CVA) 0.7+ for component variants
+  - clsx 2.1+ and tailwind-merge 3.3+ for conditional styling
+- **Blockchain Networks**: 
+  - Local: Hardhat EDR simulated chains (L1 and OP)
+  - Testnet: Sepolia and KUB Testnet with configurable RPC and private key
+  - Production: Ethereum-compatible networks and Bitkub Chain (KUB Mainnet)
+- **Package Management**: npm with lock files for dependency consistency
 - **Randomness**: On-chain pseudo-randomness using block data
 - **Asset Management**: ERC-721 (Cabinet NFTs) and ERC-20 (TuuCoin) standards
+
+### Dependency Versions
+
+**Frontend Dependencies**:
+```json
+{
+  "next": "14.2.30",
+  "react": "^18",
+  "typescript": "^5",
+  "tailwindcss": "^3.4.1",
+  "framer-motion": "^12.23.12",
+  "@tanstack/react-query": "^5.87.4",
+  "wagmi": "^2.16.9",
+  "viem": "^2.37.6",
+  "lucide-react": "^0.544.0",
+  "class-variance-authority": "^0.7.1",
+  "tailwindcss-animate": "^1.0.7"
+}
+```
+
+**Smart Contract Dependencies**:
+```json
+{
+  "hardhat": "^3.0.6",
+  "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+  "@nomicfoundation/hardhat-ignition": "^3.0.3",
+  "viem": "^2.37.6",
+  "typescript": "~5.8.0",
+  "@types/node": "^22.18.3",
+  "forge-std": "github:foundry-rs/forge-std#v1.9.4"
+}
+```
 
 ### Smart Contract Architecture
 
@@ -92,6 +134,7 @@ This ensures accurate timestamp synchronization with the system clock and preven
 ### Frontend User Journeys & Page Structure
 
 - **User Journey Flows**:
+
   - **Player Flow**: Home → Cabinet Selection → Connect Wallet → Set TuuCoin Amount → Play Gacha → Receive Prize/TuuCoin
   - **Cabinet Owner Flow**: Connect Wallet → My Cabinets → Deposit Assets → Set Pricing → Manage Cabinet → Withdraw Items
   - **Trading Flow**: Marketplace → Browse Cabinets → Purchase → Own Cabinet → Manage
@@ -118,6 +161,7 @@ This ensures accurate timestamp synchronization with the system clock and preven
 ### Data Structures
 
 **GachaItem Struct**:
+
 - `address itemAddress`: Contract address of NFT (ERC-721) or Token (ERC-20)
 - `uint256 tokenIdOrAmount`: TokenId for NFTs or amount for tokens
 - `uint8 rarity`: Rarity level (1-10, where 1 is rarest)
@@ -156,14 +200,63 @@ This ensures accurate timestamp synchronization with the system clock and preven
 
 ---
 
+## 🌐 Bitkub Chain Deployment
+
+### Network Information
+
+**KUB Testnet**:
+- **Network Name**: KUB Testnet
+- **RPC URL**: https://rpc-testnet.bitkubchain.io
+- **Chain ID**: 25925
+- **Currency Symbol**: tKUB
+- **Block Explorer**: https://testnet.kubscan.com
+
+**KUB Mainnet**:
+- **Network Name**: KUB Mainnet
+- **RPC URL**: https://rpc.bitkubchain.io
+- **Chain ID**: 96
+- **Currency Symbol**: KUB
+- **Block Explorer**: https://kubscan.com
+
+### Deployment Benefits
+
+- **Lower Gas Costs**: Significantly reduced transaction fees compared to Ethereum mainnet
+- **Regional Accessibility**: Better accessibility for Southeast Asian users
+- **EVM Compatibility**: Full Ethereum Virtual Machine compatibility for seamless contract deployment
+- **Fast Transactions**: Faster block times and transaction confirmation
+- **Local Market**: Access to Thai and regional cryptocurrency market
+
+### Configuration Setup
+
+To deploy to Bitkub Chain networks, ensure your `/contracts/hardhat.config.ts` includes:
+
+```typescript
+kubTestnet: {
+  url: process.env.KUB_TESTNET_RPC_URL || "https://rpc-testnet.bitkubchain.io",
+  accounts: process.env.KUB_TESTNET_PRIVATE_KEY ? [process.env.KUB_TESTNET_PRIVATE_KEY] : [],
+  chainId: 25925
+},
+kubMainnet: {
+  url: process.env.KUB_MAINNET_RPC_URL || "https://rpc.bitkubchain.io",
+  accounts: process.env.KUB_MAINNET_PRIVATE_KEY ? [process.env.KUB_MAINNET_PRIVATE_KEY] : [],
+  chainId: 96
+}
+```
+
+---
+
 ## 🎯 Implementation Phases
 
 ### Phase 1: Smart Contract Development & Testing
 
 1. **Smart Contract Development**: Design and implement all contracts in `/contracts` folder
 2. **Local Testing**: Comprehensive unit tests with Hardhat
-3. **Testnet Deployment**: Deploy to Sepolia for realistic testing
-4. **Mainnet Deployment**: Production deployment of battle-tested contracts
+3. **Testnet Deployment**: 
+   - Deploy to Sepolia for Ethereum compatibility testing
+   - Deploy to KUB Testnet for Bitkub Chain specific testing
+4. **Mainnet Deployment**: 
+   - Production deployment to Ethereum mainnet
+   - Production deployment to Bitkub Chain (KUB Mainnet) for lower gas costs and regional accessibility
 
 ### Phase 2: Web Application Development
 
@@ -179,12 +272,36 @@ This ensures accurate timestamp synchronization with the system clock and preven
 
 ### Code Organization (Monorepo)
 
-- **`/` (root)**: Next.js Project
-- **`/contracts`**: Hardhat Project with Solidity contracts
-- **`/app`**: Next.js App Router pages
-- **`/components`**: UI components (shared, page-specific)
-- **`/services`**: Blockchain interaction abstractions
-- **`/types`**: TypeScript interfaces and type definitions
+**Root Level (Next.js 14 Project)**:
+- **`/src/app/`**: Next.js App Router pages and layouts
+- **`/src/components/`**: React components (shared, page-specific)
+- **`/src/lib/`**: Utility functions and shared logic
+- **`/src/services/`**: Blockchain interaction abstractions
+- **`/src/types/`**: TypeScript interfaces and type definitions
+- **`/src/hooks/`**: Custom React hooks for Web3 interactions
+
+**Smart Contract Development**:
+- **`/contracts/`**: Hardhat 3.0 project with complete isolation
+  - **`/contracts/contracts/`**: Solidity smart contracts (.sol files)
+  - **`/contracts/test/`**: TypeScript integration tests (node:test)
+  - **`/contracts/scripts/`**: Deployment and interaction scripts
+  - **`/contracts/ignition/modules/`**: Ignition deployment modules
+  - **`/contracts/hardhat.config.ts`**: Hardhat configuration with viem
+  - **`/contracts/package.json`**: Separate dependency management
+
+**Configuration Files**:
+- **`/package.json`**: Main project dependencies (Next.js, React, Web3)
+- **`/tsconfig.json`**: TypeScript configuration with path mapping
+- **`/tailwind.config.ts`**: Tailwind CSS with shadcn/ui integration
+- **`/components.json`**: shadcn/ui component configuration
+- **`/next.config.mjs`**: Next.js configuration
+- **`/.eslintrc.json`**: ESLint rules for Next.js and TypeScript
+
+**Key Benefits of Monorepo Structure**:
+- **Isolated Dependencies**: Contracts and frontend have separate package.json files
+- **Shared TypeScript**: Contract types can be imported into frontend
+- **Unified Development**: Single repository for full-stack development
+- **Independent Deployment**: Contracts and frontend can be deployed separately
 
 ---
 
@@ -206,12 +323,30 @@ You must **NEVER** include sensitive information such as API keys, passwords, or
 
 **Critical Environment Variables**:
 
-- `PRIVATE_KEY`: Wallet private key for contract deployment
-- `INFURA_PROJECT_ID`: Infura API key for blockchain connectivity
-- `ETHERSCAN_API_KEY`: For contract verification
-- `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`: WalletConnect configuration
-- `NEXT_PUBLIC_CONTRACT_ADDRESS_CABINET`: Deployed cabinet contract address
+**Smart Contract Development**:
+- `SEPOLIA_PRIVATE_KEY`: Wallet private key for Sepolia testnet deployment
+- `SEPOLIA_RPC_URL`: Sepolia testnet RPC endpoint (e.g., Infura, Alchemy)
+- `KUB_TESTNET_PRIVATE_KEY`: Wallet private key for KUB Testnet deployment
+- `KUB_TESTNET_RPC_URL`: KUB Testnet RPC endpoint (https://rpc-testnet.bitkubchain.io)
+- `ETHERSCAN_API_KEY`: For contract verification on Etherscan
+- `KUBSCAN_API_KEY`: For contract verification on KubScan
+- `MAINNET_PRIVATE_KEY`: Production deployment private key (mainnet)
+- `MAINNET_RPC_URL`: Mainnet RPC endpoint
+- `KUB_MAINNET_PRIVATE_KEY`: Production deployment private key for Bitkub Chain
+- `KUB_MAINNET_RPC_URL`: Bitkub Chain mainnet RPC endpoint (https://rpc.bitkubchain.io)
+
+**Frontend Web3 Integration**:
+- `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`: WalletConnect v2 project ID
+- `NEXT_PUBLIC_CONTRACT_ADDRESS_CABINET`: Deployed TuuKeepCabinet contract address
 - `NEXT_PUBLIC_CONTRACT_ADDRESS_TUUCOIN`: Deployed TuuCoin contract address
+- `NEXT_PUBLIC_CONTRACT_ADDRESS_MARKETPLACE`: Deployed marketplace contract address
+- `NEXT_PUBLIC_CHAIN_ID`: Target blockchain network ID (1 for Ethereum mainnet, 11155111 for Sepolia, 96 for KUB Mainnet, 25925 for KUB Testnet)
+
+**Security Notes**:
+- Use `hardhat keystore` for secure private key management
+- Never commit private keys or sensitive data to version control
+- Use different keys for testnet and mainnet deployments
+- Verify all contract addresses before frontend integration
 
 ### STICK TO THE SCOPE
 
@@ -656,28 +791,66 @@ cd contracts
 # Install Hardhat dependencies
 npm install
 
-# Compile contracts
+# Compile contracts with Solidity 0.8.28
 npx hardhat compile
 
-# Run tests
+# Run all tests (Solidity + Node.js)
 npx hardhat test
 
-# Deploy to local network
-npx hardhat node
-npx hardhat run scripts/deploy.js --network localhost
+# Run specific test types
+npx hardhat test solidity    # Foundry-compatible tests
+npx hardhat test nodejs      # TypeScript integration tests
 
-# Deploy to testnet
-npx hardhat run scripts/deploy.js --network sepolia
+# Deploy to local simulated network
+npx hardhat ignition deploy ignition/modules/Counter.ts
+
+# Deploy to Sepolia testnet (requires SEPOLIA_PRIVATE_KEY)
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY  # Set private key securely
+npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+
+# Test OP chain simulation
+npx hardhat run scripts/send-op-tx.ts --network hardhatOp
 ```
+
+### Hardhat Configuration Details
+
+**Solidity Profiles**:
+- **Default**: Version 0.8.28 for development
+- **Production**: Version 0.8.28 with optimizer (200 runs)
+
+**Network Configuration**:
+- **hardhatMainnet**: EDR simulated L1 chain
+- **hardhatOp**: EDR simulated Optimism chain
+- **sepolia**: HTTP connection with configurable RPC URL and private key (Chain ID: 11155111)
+- **kubTestnet**: KUB Testnet connection (Chain ID: 25925, RPC: https://rpc-testnet.bitkubchain.io)
+- **kubMainnet**: KUB Mainnet connection (Chain ID: 96, RPC: https://rpc.bitkubchain.io)
+
+**Key Features**:
+- **Hardhat 3.0 Beta**: Latest features with viem integration
+- **TypeScript Support**: Full TypeScript integration for scripts and tests
+- **Configuration Variables**: Secure handling of sensitive data (RPC URLs, private keys)
+- **Multi-chain Support**: L1 and L2 (Optimism) simulation capabilities
+- **Ignition Deployment**: Modern deployment system with state management
 
 ### Web3 Integration
 
 ```bash
-# Generate contract types
-npx typechain --target ethers-v5 --out-dir types/contracts 'contracts/artifacts/**/*.json'
+# Generate contract types for viem (Hardhat 3.0 handles this automatically)
+# Types are generated during compilation with @nomicfoundation/hardhat-toolbox-viem
 
 # Verify contracts on Etherscan
+npx hardhat verify --network sepolia DEPLOYED_CONTRACT_ADDRESS
 npx hardhat verify --network mainnet DEPLOYED_CONTRACT_ADDRESS
+
+# Verify contracts on KubScan (Bitkub Chain)
+npx hardhat verify --network kubTestnet DEPLOYED_CONTRACT_ADDRESS
+npx hardhat verify --network kubMainnet DEPLOYED_CONTRACT_ADDRESS
+
+# Check contract deployment status
+npx hardhat ignition status ignition/deployments/chain-[CHAIN_ID]/
+
+# Interact with deployed contracts using viem
+node -e "import('./scripts/interact.js')"
 ```
 
 ---
