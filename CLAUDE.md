@@ -1,360 +1,59 @@
 ---
 ## Project Overview
 
-**Project Name**: TuuKeep - Decentralized Gachapon Platform
-
-**Repository**: https://github.com/mojisejr/tuuKeep 
-
-**Description**: TuuKeep is a Decentralized Gachapon (TuuKeep) platform built on the blockchain, allowing users to own **Gachapon Cabinet NFTs**. These NFTs are not just collectibles; they are income-generating assets. Cabinet owners can fill their machines with various assets, including other NFTs and crypto tokens, and open them up for players to pay and receive a random item.
-
-**Project Goals**:
-
-- Create a fun NFT gaming platform with a sustainable and engaging economic model
-- Generate revenue from selling **Gachapon Cabinet NFTs** and collecting transaction fees from gacha plays
-- Build a decentralized ecosystem where cabinet owners earn from their assets
-- Provide an engaging gaming experience with blockchain-based randomness and asset management
-
----
+**TuuKeep** - Decentralized Gachapon Platform built on blockchain. Users own **Gachapon Cabinet NFTs** as income-generating assets. Cabinet owners fill machines with assets and collect fees from players.
 
 ### Development Guidelines
 
-**⚠️ CRITICAL: Synchronize Time Before Any File Operations**
-
-Before creating a new file or saving any timestamps, you **MUST** use the following command to retrieve the current date and time from the system:
-
+**⚠️ CRITICAL: Time Sync Required**
 ```bash
-date +"%Y-%m-%d %H:%M:%S"
+date +"%Y-%m-%d %H:%M:%S"  # Run before file operations
 ```
 
-This ensures accurate timestamp synchronization with the system clock and prevents time-related inconsistencies.
-
-#### File Naming Conventions
-
-- **Retrospective Files**: `session-YYYY-MM-DD-[description].md`
-- **Log Files**: `YYYY-MM-DD-[type].log`
-- **Backup Files**: `backup-YYYY-MM-DD-HHMM.sql`
-
-#### Important Notes
-
-- **ALL timestamps** in documentation, logs, and file names must use Thailand timezone
-- **Year format** must always be Christian Era (ค.ศ.) not Buddhist Era (พ.ศ.)
-- **Development sessions** should reference Thailand local time
-- **Retrospective files** must use correct Thailand date in filename
+**File Naming**: `session-YYYY-MM-DD-[description].md`, Thailand timezone, Christian Era dates.
 
 ---
 
 ## Architecture Overview
 
-### Core Structure
+**Tech Stack**:
+- Next.js 14 + React 18 + TypeScript + Tailwind CSS
+- shadcn/ui components, Framer Motion, wagmi/viem
+- Hardhat 3.0 + Solidity 0.8.28 (nested monorepo)
+- Bitkub Chain (KUB) + Ethereum networks
 
-- **Framework**: Next.js 14 (App Router)
-- **Frontend/Framework**: React 18 with TypeScript
-- **Styling**: Tailwind CSS with Framer Motion animations (Neon arcade aesthetic)
-- **UI Components**: shadcn/ui component library
-- **Blockchain Integration**: wagmi & viem for Web3 connectivity
-- **Smart Contracts**: Hardhat development environment (nested in monorepo)
-- **Blockchain**: Ethereum-compatible networks (Mainnet/Testnet deployment)
+**Smart Contracts**:
+- **TuuKeepCabinet.sol**: Cabinet management, gameplay
+- **TuuCoin.sol**: Platform token, odds modification
+- **TuuKeepMarketplace.sol**: P2P trading
+- **Utils/Randomness.sol**: On-chain randomness
 
-### Tech Stack
+**Page Structure**:
+- `/`: Browse available cabinets
+- `/cabinet/[id]`: Play gacha with TuuCoin odds
+- `/my-cabinets`: Owner dashboard
+- `/marketplace`: Secondary market
+- `/mint-cabinet`: Admin interface
 
-- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Framer Motion
-- **UI Framework**: shadcn/ui components with neon arcade theming
-- **Web3 Integration**: wagmi, viem, @tanstack/react-query for blockchain interactions
-- **Smart Contracts**: Solidity with Hardhat for development and testing
-- **Development Tools**:
-  - TypeScript 5.x strict mode with path mapping (@/* aliases)
-  - ESLint 8.x with Next.js and TypeScript configurations
-  - Class Variance Authority (CVA) 0.7+ for component variants
-  - clsx 2.1+ and tailwind-merge 3.3+ for conditional styling
-- **Blockchain Networks**: 
-  - Local: Hardhat EDR simulated chains (L1 and OP)
-  - Testnet: Sepolia and KUB Testnet with configurable RPC and private key
-  - Production: Ethereum-compatible networks and Bitkub Chain (KUB Mainnet)
-- **Package Management**: npm with lock files for dependency consistency
-- **Randomness**: On-chain pseudo-randomness using block data
-- **Asset Management**: ERC-721 (Cabinet NFTs) and ERC-20 (TuuCoin) standards
+**Bitkub Chain Networks**:
+- KUB Testnet: Chain 25925, https://rpc-testnet.bitkubchain.io
+- KUB Mainnet: Chain 96, https://rpc.bitkubchain.io
 
-### Dependency Versions
-
-**Frontend Dependencies**:
-```json
-{
-  "next": "14.2.30",
-  "react": "^18",
-  "typescript": "^5",
-  "tailwindcss": "^3.4.1",
-  "framer-motion": "^12.23.12",
-  "@tanstack/react-query": "^5.87.4",
-  "wagmi": "^2.16.9",
-  "viem": "^2.37.6",
-  "lucide-react": "^0.544.0",
-  "class-variance-authority": "^0.7.1",
-  "tailwindcss-animate": "^1.0.7"
-}
-```
-
-**Smart Contract Dependencies**:
-```json
-{
-  "hardhat": "^3.0.6",
-  "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
-  "@nomicfoundation/hardhat-ignition": "^3.0.3",
-  "viem": "^2.37.6",
-  "typescript": "~5.8.0",
-  "@types/node": "^22.18.3",
-  "forge-std": "github:foundry-rs/forge-std#v1.9.4"
-}
-```
-
-### Smart Contract Architecture
-
-- **TuuKeepCabinet.sol** (ERC-721 NFT): Core gachapon cabinet management
-
-  - `depositItems()`: Lock assets (NFTs/tokens) into cabinet escrow
-  - `withdrawItems()`: Retrieve unsold items by cabinet owner
-  - `setPrice()`: Set play price and payment token for cabinet
-  - `play()`: Execute gacha play with optional TuuCoin burning
-  - `tokenURI()`: Generate on-chain SVG images with custom names
-
-- **TuuCoin.sol** (ERC-20 Token): Platform meme coin system
-
-  - `mint()`: On-demand minting to players receiving no prize
-  - `burn()`: Destroy tokens used for odds modification
-  - Decentralized distribution model
-
-- **TuuKeepMarketplace.sol**: P2P cabinet NFT trading
-
-  - Buy/sell cabinet NFTs between users
-  - Secondary market functionality
-
-- **Utils/Randomness.sol**: On-chain pseudo-randomness
-  - Block-based randomness generation
-  - No external oracle dependencies
-
-### Frontend User Journeys & Page Structure
-
-- **User Journey Flows**:
-
-  - **Player Flow**: Home → Cabinet Selection → Connect Wallet → Set TuuCoin Amount → Play Gacha → Receive Prize/TuuCoin
-  - **Cabinet Owner Flow**: Connect Wallet → My Cabinets → Deposit Assets → Set Pricing → Manage Cabinet → Withdraw Items
-  - **Trading Flow**: Marketplace → Browse Cabinets → Purchase → Own Cabinet → Manage
-  - **Platform Owner Flow**: Admin Dashboard → Mint New Cabinets → Monitor Platform
-
-- **Page Structure**:
-  - **`/` (Home)**: Display all available Gachapon Cabinet NFTs open for play
-  - **`/cabinet/[id]`**: Cabinet detail page with TuuCoin input for odds modification
-  - **`/my-cabinets`**: Cabinet owner dashboard for asset and pricing management
-  - **`/marketplace`**: Secondary market for cabinet NFT trading
-  - **`/mint-cabinet`**: Platform owner exclusive cabinet minting interface
-
----
-
-## 🎮 Game Mechanics & Data Structures
-
-### Core Game Components
-
-1. **Gachapon Cabinet NFTs**: Income-generating assets with on-chain metadata
-2. **Asset Escrow System**: Secure locking of prizes within cabinet contracts
-3. **Randomness Engine**: On-chain pseudo-randomness for fair prize distribution
-4. **TuuCoin Integration**: Meme coin system for odds modification and rewards
-
-### Data Structures
-
-**GachaItem Struct**:
-
-- `address itemAddress`: Contract address of NFT (ERC-721) or Token (ERC-20)
-- `uint256 tokenIdOrAmount`: TokenId for NFTs or amount for tokens
-- `uint8 rarity`: Rarity level (1-10, where 1 is rarest)
-- `uint256 count`: Number of items remaining
-- `string name`: On-chain cabinet name field
-
-### Asset Management System
-
-- **Maximum 10 items per cabinet**: Contract-enforced item limit
-- **Escrow Protection**: Assets locked in contract, preventing double-spending
-- **Dynamic Pricing**: Cabinet owners set custom play prices and payment tokens
-- **Odds Modification**: Players can burn TuuCoin (up to 20% of play price) to improve chances
-
----
-
-## 💰 Tokenomics & Revenue Model
-
-### Revenue Streams
-
-- **Cabinet NFT Sales**: Limited edition gachapon cabinet NFTs sold by platform owner
-- **Transaction Fees**: Platform fee collected from each gacha play transaction
-- **Marketplace Fees**: Secondary market trading fees on cabinet transfers
-
-### TuuCoin ($TUU) Economics
-
-- **Minting**: On-demand minting directly to players who receive no prize
-- **Burning**: Players burn TuuCoin to modify odds (up to 20% of play price)
-- **Decentralized Distribution**: No pre-mine, purely merit-based token distribution
-- **Utility**: Primary use for odds improvement and platform governance
-
-### User Roles & Economics
-
-- **Platform Owner**: Sells cabinet NFTs, collects transaction fees
-- **Cabinet Owner**: Earns revenue from gacha plays, manages asset deposits
-- **Player**: Pays to play, receives prizes or TuuCoin, can modify odds
-
----
-
-## 🌐 Bitkub Chain Deployment
-
-### Network Information
-
-**KUB Testnet**:
-- **Network Name**: KUB Testnet
-- **RPC URL**: https://rpc-testnet.bitkubchain.io
-- **Chain ID**: 25925
-- **Currency Symbol**: tKUB
-- **Block Explorer**: https://testnet.kubscan.com
-
-**KUB Mainnet**:
-- **Network Name**: KUB Mainnet
-- **RPC URL**: https://rpc.bitkubchain.io
-- **Chain ID**: 96
-- **Currency Symbol**: KUB
-- **Block Explorer**: https://kubscan.com
-
-### Deployment Benefits
-
-- **Lower Gas Costs**: Significantly reduced transaction fees compared to Ethereum mainnet
-- **Regional Accessibility**: Better accessibility for Southeast Asian users
-- **EVM Compatibility**: Full Ethereum Virtual Machine compatibility for seamless contract deployment
-- **Fast Transactions**: Faster block times and transaction confirmation
-- **Local Market**: Access to Thai and regional cryptocurrency market
-
-### Configuration Setup
-
-To deploy to Bitkub Chain networks, ensure your `/contracts/hardhat.config.ts` includes:
-
-```typescript
-kubTestnet: {
-  url: process.env.KUB_TESTNET_RPC_URL || "https://rpc-testnet.bitkubchain.io",
-  accounts: process.env.KUB_TESTNET_PRIVATE_KEY ? [process.env.KUB_TESTNET_PRIVATE_KEY] : [],
-  chainId: 25925
-},
-kubMainnet: {
-  url: process.env.KUB_MAINNET_RPC_URL || "https://rpc.bitkubchain.io",
-  accounts: process.env.KUB_MAINNET_PRIVATE_KEY ? [process.env.KUB_MAINNET_PRIVATE_KEY] : [],
-  chainId: 96
-}
-```
-
----
-
-## 🎯 Implementation Phases
-
-### Phase 1: Smart Contract Development & Testing
-
-1. **Smart Contract Development**: Design and implement all contracts in `/contracts` folder
-2. **Local Testing**: Comprehensive unit tests with Hardhat
-3. **Testnet Deployment**: 
-   - Deploy to Sepolia for Ethereum compatibility testing
-   - Deploy to KUB Testnet for Bitkub Chain specific testing
-4. **Mainnet Deployment**: 
-   - Production deployment to Ethereum mainnet
-   - Production deployment to Bitkub Chain (KUB Mainnet) for lower gas costs and regional accessibility
-
-### Phase 2: Web Application Development
-
-1. **Project Setup**: Next.js monorepo with nested Hardhat project
-2. **Blockchain Integration**: Connect wagmi and viem with Next.js
-3. **Service Layer**: Abstract smart contract interactions
-4. **UI/UX Development**:
-   - Neon arcade aesthetic with shadcn/ui
-   - Framer Motion animations
-   - Responsive design across all devices
-5. **End-to-End Testing**: Complete user journey validation
-6. **Production Deployment**: Launch on production server
-
-### Code Organization (Monorepo)
-
-**Root Level (Next.js 14 Project)**:
-- **`/src/app/`**: Next.js App Router pages and layouts
-- **`/src/components/`**: React components (shared, page-specific)
-- **`/src/lib/`**: Utility functions and shared logic
-- **`/src/services/`**: Blockchain interaction abstractions
-- **`/src/types/`**: TypeScript interfaces and type definitions
-- **`/src/hooks/`**: Custom React hooks for Web3 interactions
-
-**Smart Contract Development**:
-- **`/contracts/`**: Hardhat 3.0 project with complete isolation
-  - **`/contracts/contracts/`**: Solidity smart contracts (.sol files)
-  - **`/contracts/test/`**: TypeScript integration tests (node:test)
-  - **`/contracts/scripts/`**: Deployment and interaction scripts
-  - **`/contracts/ignition/modules/`**: Ignition deployment modules
-  - **`/contracts/hardhat.config.ts`**: Hardhat configuration with viem
-  - **`/contracts/package.json`**: Separate dependency management
-
-**Configuration Files**:
-- **`/package.json`**: Main project dependencies (Next.js, React, Web3)
-- **`/tsconfig.json`**: TypeScript configuration with path mapping
-- **`/tailwind.config.ts`**: Tailwind CSS with shadcn/ui integration
-- **`/components.json`**: shadcn/ui component configuration
-- **`/next.config.mjs`**: Next.js configuration
-- **`/.eslintrc.json`**: ESLint rules for Next.js and TypeScript
-
-**Key Benefits of Monorepo Structure**:
-- **Isolated Dependencies**: Contracts and frontend have separate package.json files
-- **Shared TypeScript**: Contract types can be imported into frontend
-- **Unified Development**: Single repository for full-stack development
-- **Independent Deployment**: Contracts and frontend can be deployed separately
+**Monorepo Structure**:
+- Root: Next.js app (`/src/app/`, `/src/components/`)
+- `/contracts/`: Isolated Hardhat project
 
 ---
 
 ## ⚠️ CRITICAL SAFETY RULES
 
-### NEVER MERGE PRS YOURSELF
+- **NEVER merge PRs**: Only provide PR link, wait for user approval
+- **NO critical file deletion**: `.env`, `.git/`, `node_modules/`, etc.
+- **Protect sensitive data**: Use env vars, never commit secrets
+- **Stay in scope**: Focus only on assigned tasks
+- **Contract safety**: Test thoroughly on testnet first
 
-**DO NOT** use any commands to merge Pull Requests, such as `gh pr merge`. Your role is to create a well-documented PR and provide the link to the user.
-
-**ONLY** provide the PR link to the user and **WAIT** for explicit user instruction to merge. The user will review and merge when ready.
-
-### DO NOT DELETE CRITICAL FILES
-
-You are **FORBIDDEN** from deleting or moving critical files and directories in the project. This includes, but is not limited to: `.env`, `.git/`, `node_modules/`, `package.json`, `prisma/schema.prisma`, and the main project root files. If a file or directory needs to be removed, you must explicitly ask for user permission and provide a clear explanation.
-
-### HANDLE SENSITIVE DATA WITH CARE
-
-You must **NEVER** include sensitive information such as API keys, passwords, or user data in any commit messages, Pull Request descriptions, or public logs. Always use environment variables for sensitive data. If you detect sensitive data, you must alert the user and **REFUSE** to proceed until the information is properly handled.
-
-**Critical Environment Variables**:
-
-**Smart Contract Development**:
-- `SEPOLIA_PRIVATE_KEY`: Wallet private key for Sepolia testnet deployment
-- `SEPOLIA_RPC_URL`: Sepolia testnet RPC endpoint (e.g., Infura, Alchemy)
-- `KUB_TESTNET_PRIVATE_KEY`: Wallet private key for KUB Testnet deployment
-- `KUB_TESTNET_RPC_URL`: KUB Testnet RPC endpoint (https://rpc-testnet.bitkubchain.io)
-- `ETHERSCAN_API_KEY`: For contract verification on Etherscan
-- `KUBSCAN_API_KEY`: For contract verification on KubScan
-- `MAINNET_PRIVATE_KEY`: Production deployment private key (mainnet)
-- `MAINNET_RPC_URL`: Mainnet RPC endpoint
-- `KUB_MAINNET_PRIVATE_KEY`: Production deployment private key for Bitkub Chain
-- `KUB_MAINNET_RPC_URL`: Bitkub Chain mainnet RPC endpoint (https://rpc.bitkubchain.io)
-
-**Frontend Web3 Integration**:
-- `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`: WalletConnect v2 project ID
-- `NEXT_PUBLIC_CONTRACT_ADDRESS_CABINET`: Deployed TuuKeepCabinet contract address
-- `NEXT_PUBLIC_CONTRACT_ADDRESS_TUUCOIN`: Deployed TuuCoin contract address
-- `NEXT_PUBLIC_CONTRACT_ADDRESS_MARKETPLACE`: Deployed marketplace contract address
-- `NEXT_PUBLIC_CHAIN_ID`: Target blockchain network ID (1 for Ethereum mainnet, 11155111 for Sepolia, 96 for KUB Mainnet, 25925 for KUB Testnet)
-
-**Security Notes**:
-- Use `hardhat keystore` for secure private key management
-- Never commit private keys or sensitive data to version control
-- Use different keys for testnet and mainnet deployments
-- Verify all contract addresses before frontend integration
-
-### STICK TO THE SCOPE
-
-You are instructed to focus **ONLY** on the task described in the assigned Issue. Do not perform any refactoring, code cleanup, or new feature development unless it is explicitly part of the plan. If you encounter an opportunity to improve the code outside of the current scope, you must create a new task and discuss it with the user first.
-
-### SMART CONTRACT SAFETY
-
-**DO NOT** deploy smart contracts to mainnet without thorough testing on testnet. Always verify contract addresses and test all functions on testnet before mainnet deployment. Any changes to contract logic must be thoroughly tested using Hardhat test suite (`npx hardhat test`).
+**Key Environment Variables**: Private keys, RPC URLs, contract addresses for testnet/mainnet deployment and frontend integration.
 
 ---
 
@@ -570,197 +269,30 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 
 ---
 
-## 🛡️ Security Implementation Methodology
+## 🛡️ Security & Performance Guidelines
 
-_Based on comprehensive security audit sessions documented in retrospectives_
+### Security Implementation (8-Phase, 31-min process)
+1. Infrastructure + Endpoint Analysis (input validation, rate limiting)
+2. Data Integrity + Compliance (PCI DSS, GDPR)
+3. Vulnerability Testing + Implementation
+4. Build Validation + Documentation
 
-### Systematic Security Audit Approach
+**Key Practices**: Rate limiting, Zod schemas, generic error responses, webhook signature validation
 
-**8-Phase Security Audit Process** (31-minute comprehensive audits):
+### Performance Optimization (15-min vs 34-min baseline)
+**High Efficiency Factors**:
+- TodoWrite usage for progress tracking
+- Reference pattern from `/docs/retrospective/`
+- Systematic 5-phase approach
+- Proactive build validation (`npm run build`, `npx tsc --noEmit`)
 
-1. **Infrastructure Analysis** (2-3 min): Environment variables, database schema, authentication
-2. **Core Endpoint Analysis** (5-8 min): Input validation, rate limiting, error handling, authorization
-3. **Data Integrity Analysis** (3-5 min): Transaction security, data flow assessment, logging
-4. **Compliance Assessment** (3-5 min): PCI DSS, GDPR, industry standards
-5. **Vulnerability Testing** (5-8 min): Injection prevention, authentication bypass, authorization
-6. **Security Implementation** (8-12 min): Rate limiting, input validation, error hardening
-7. **Build Validation** (2-3 min): TypeScript compilation, dependency validation
-8. **Documentation & Reporting** (3-5 min): Security audit report, compliance metrics
+**Performance Metrics**: 56% faster with pattern replication, 100% build success target
 
-### Enterprise-Grade Security Measures
-
-#### Critical Security Implementations
-
-- **Rate Limiting**: 15-minute windows, configurable limits per endpoint
-- **Input Validation**: Comprehensive Zod schemas for all API endpoints
-- **Secure Error Handling**: Generic error responses prevent information disclosure
-- **Webhook Security**: Signature validation with timestamp-based replay protection
-
-### Security Compliance Metrics
-
-**Measurable Improvements from Security Audits**:
-
-- **PCI DSS Compliance**: 65% → 85% improvement documented
-- **Critical Vulnerabilities**: 5 critical issues → 0 critical issues
-- **High-Priority Issues**: 8 high-priority → 2 high-priority resolved
-- **Security Score**: Significant improvement in enterprise security standards
-
-### Security Best Practices from Retrospectives
-
-**Key Security Areas**:
-
-- **Webhook Security**: Validate signatures, prevent replay attacks, never log secrets
-- **Payment System**: Server-side validation, discount verification, transaction integrity
-- **Error Handling**: Generic error responses, sanitized logging
-
----
-
-## 🎨 UI/UX Design Integration Guidelines
-
-_Based on style refactoring and accessibility improvement sessions_
-
-### Visual Design Validation Requirements
-
-**CRITICAL**: Visual design quality is equally important as functional implementation, especially for customer-facing features.
-
-#### Pre-Implementation Design Checklist
-
-```markdown
-✅ Color contrast validation (WCAG 2.1 AA compliance)
-✅ Accessibility standards verification
-✅ Responsive design across device sizes
-✅ Typography hierarchy consistency
-✅ Animation performance optimization
-✅ Reduced motion preference support
-```
-
-#### Design Quality Assurance Process
-
-**3-Phase Approach**:
-
-1. **Design System Integration**: Follow component patterns, centralized utilities (60% duplication reduction)
-2. **Accessibility Implementation**: WCAG 2.1 AA compliance (4.5:1 contrast), keyboard navigation, screen reader support, reduced motion
-3. **Performance Optimization**: 60fps animations, bundle size monitoring, critical CSS, responsive images
-
-### Centralized Styling Architecture
-
-- **Utility-Based System**: Centralized styling utilities in `src/utils/campaignStyles.ts`
-- **TypeScript Interfaces**: Proper typing for styling configurations
-- **Accessibility Integration**: Built-in WCAG compliance and reduced motion support
-- **60% Duplication Reduction**: Proven efficiency through centralized approach
-
-### Marketing Component Requirements
-
-**Campaign Elements**: High visual impact, enhanced contrast for promotional text, clear visual hierarchy, A/B testing ready
-
-### Design Review Integration
-
-**Visual Review Steps**: Browser preview, contrast analysis, multi-device testing, accessibility testing, motion testing
-
-**Common Pitfalls to Avoid**: Poor color choices, inconsistent spacing, animation overuse, desktop-only thinking, accessibility afterthoughts
-
----
-
-## ⚡ Efficiency Patterns & Performance Optimization
-
-_Based on documented performance improvements from retrospective analysis_
-
-### 🏃‍♂️ 15-Minute Implementation Strategy
-
-**Results**: 15-minute implementations vs 34+ minute baseline
-
-**Prerequisites**: Reference pattern, TodoWrite initialized, component structure analyzed, integration points identified
-
-**Speed Optimization Techniques**:
-
-1. **Pattern Recognition**: 56% faster when following proven patterns from `/docs/retrospective/`
-2. **MultiEdit**: Batch multiple edits instead of sequential single edits
-3. **Systematic Analysis**: 2-3 minute analysis of target areas and integration points
-4. **Build Validation**: `npm run build` after major changes, `npx tsc --noEmit` for type checking
-
-### 📊 Performance Benchmarks
-
-#### Implementation Time Comparisons
-
-| Task Type             | First Implementation | Pattern Replication | Improvement |
-| --------------------- | -------------------- | ------------------- | ----------- |
-| UI Consolidation      | 34 minutes           | 15 minutes          | 56% faster  |
-| Component Refactoring | 45 minutes           | 20 minutes          | 56% faster  |
-| API Migration         | 135 minutes          | 75 minutes          | 44% faster  |
-| Database Debugging    | 45 minutes           | 25 minutes          | 44% faster  |
-| Security Audit        | 60+ minutes          | 31 minutes          | 48% faster  |
-| Style Refactoring     | 70+ minutes          | 55 minutes          | 21% faster  |
-
-#### Efficiency Factor Analysis
-
-**High Efficiency Sessions** (15-20 minutes):
-
-- ✅ TodoWrite usage for progress tracking
-- ✅ Reference pattern available
-- ✅ Clear component structure understanding
-- ✅ Systematic 5-phase approach
-- ✅ Proactive build validation
-
-**Low Efficiency Sessions** (45+ minutes):
-
-- ❌ No reference pattern
-- ❌ Schema assumptions without verification
-- ❌ Working directly on main branch
-- ❌ Build testing only at end
-- ❌ Complex dependency analysis needed
-
-### 🎯 High-Impact Optimization Areas
-
-#### 1. TodoWrite Integration ROI
-
-- **Setup Time**: 2-3 minutes
-- **Visibility Benefit**: Real-time progress tracking
-- **Accountability**: Prevents skipping critical steps
-- **Stakeholder Communication**: Clear progress indicators
-- **Proven Results**: 56% faster implementations documented
-
-#### 2. Reference Pattern Utilization
-
-- **Pattern Documentation**: Create detailed retrospectives
-- **Pattern Library**: Maintain `/docs/retrospective/` as reference
-- **Systematic Replication**: Follow proven approaches exactly
-- **Context Adaptation**: Modify only necessary elements
-
-#### 3. Tool Optimization
-
-- **Efficient Pattern**: Read (targeted) → MultiEdit (batch) → Build (validation)
-- **Avoid**: Multiple single Edits → Multiple Reads → Late build testing
-
-#### 4. Workflow Adherence
-
-- **Branch Management**: Always create feature branches
-- **Incremental Testing**: Build validation at each phase
-- **Documentation Standards**: Comprehensive PR descriptions
-- **Issue Tracking**: Real-time GitHub issue updates
-
-### 🔄 Continuous Improvement Framework
-
-**Session Performance Tracking**: Track implementation time, document efficiency factors, identify workflow violations, measure pattern success rates
-
-**Pattern Development Lifecycle**: Novel Implementation → Pattern Recognition → Pattern Refinement → Pattern Maturation (sub-20-minute implementations)
-
-### 📈 Success Metrics & Performance Indicators
-
-#### Key Performance Indicators (KPIs)
-
-- **Implementation Speed**: Target <20 minutes for standard refactoring tasks
-- **Pattern Replication Success**: 56% time reduction when following proven patterns
-- **Build Success Rate**: 100% successful builds after implementation
-- **TodoWrite Utilization**: 100% usage for complex multi-phase tasks
-- **Security Compliance**: 85%+ PCI DSS compliance maintenance
-- **Code Quality**: Zero TypeScript errors in final implementations
-
-#### Session Quality Assessment
-
-- **Excellent (9-10/10)**: <20 min, pattern replication, zero issues
-- **Good (7-8/10)**: 20-35 min, some iterations, minor issues
-- **Average (5-6/10)**: 35-60 min, multiple iterations, troubleshooting
-- **Below Average (<5/10)**: >60 min, major blockers, incomplete
+### UI/UX Standards
+- WCAG 2.1 AA compliance (4.5:1 contrast)
+- Centralized styling utilities (`src/utils/campaignStyles.ts`)
+- 60fps animations, responsive design
+- Reduced motion support
 
 ---
 
@@ -855,351 +387,59 @@ node -e "import('./scripts/interact.js')"
 
 ---
 
-## 📈 Retrospective Workflow
+## 📚 Best Practices
 
-When you use the `=rrr` command, the agent will create a file and an Issue with the following sections and details:
+### TodoWrite Integration (56% faster implementations)
+**Use for**: Complex multi-step tasks, security audits, large refactoring
+**Pattern**: 5-12 todos, exactly ONE in_progress, real-time visibility
 
-### Retrospective Structure
+### Pattern Replication Strategy
+1. Document successful patterns in `/docs/retrospective/`
+2. Use previous sessions as implementation guides
+3. Adapt proven patterns for new contexts
+4. Measure efficiency improvements
 
-**Required Sections**:
-
-- **Session Details**: Date (YYYY-MM-DD Thailand timezone), Duration, Focus, Issue/PR references
-- **Session Summary**: Overall work accomplished
-- **Timeline**: Key events with Thailand timestamps (Asia/Bangkok, UTC+7)
-- **📝 AI Diary** (MANDATORY): First-person reflection on approach and decisions
-- **💭 Honest Feedback** (MANDATORY): Performance assessment and improvement suggestions
-- **What Went Well**: Successes achieved
-- **What Could Improve**: Areas for enhancement
-- **Blockers & Resolutions**: Obstacles and solutions
-- **Lessons Learned**: Patterns, mistakes, and discoveries
-
-**File Naming**: `session-YYYY-MM-DD-[description].md` with Thailand date
-
----
-
-## 📚 Best Practices from Retrospectives
-
-_Lessons from 10+ development sessions in `/docs/retrospective/`_
-
-### 🎯 TodoWrite Integration Best Practices
-
-**Results**: **15-minute implementations** vs 34+ minute sessions
-
-**When to Use**: Complex multi-step tasks (3+ phases), multi-component refactoring, full-stack implementations, large refactoring projects, security audits, campaign development, database migrations
-
-**Workflow Pattern**:
-
-1. Break into 5-12 manageable todos
-2. Mark exactly ONE todo in_progress → completed
-3. Provides real-time visibility and accountability
-4. Enables accurate time estimation
-
-**Proven Benefits**: 56% faster implementation, reduces context switching, prevents missing steps, ensures comprehensive testing
-
-#### Advanced TodoWrite Patterns
-
-- **Security Implementations**: 8-phase systematic approach (31-minute completion)
-
-  - Phases 1-2: Infrastructure & Core Endpoint Analysis
-  - Phases 3-4: Data Integrity & Compliance Assessment
-  - Phases 5-6: Vulnerability Testing & Security Implementation
-  - Phases 7-8: Build Validation & Documentation
-
-- **UI/UX Refactoring**: 4-phase centralized styling development
-  - WCAG compliance audit → Centralized utilities → Component integration → Performance optimization
-
-### 🔄 Pattern Replication Strategy
-
-#### Reference Implementation Approach
-
-1. **Document Successful Patterns**: Create detailed retrospectives for reusable approaches
-2. **Systematic Replication**: Use previous session files as implementation guides
-3. **Adapt, Don't Recreate**: Modify proven patterns for new contexts
-4. **Measure Efficiency**: Track implementation time improvements
-
-#### Proven Pattern Examples
-
-- **UI Consolidation**: Reward card → chip integration (achieved 56% speed improvement)
-- **Component Refactoring**: Systematic removal and integration approaches
-- **API Updates**: Phase-by-phase endpoint migration strategies
-
-### ⚡ Build Validation Checkpoints
-
-#### Critical Validation Points
-
+### Build Validation Checkpoints
 - **Schema Changes**: `npm run build && npx tsc --noEmit`
-- **API Modifications**: `npm run build 2>&1 | grep -A 5 "error"`
-- **Large Refactoring**: `npx prisma generate && npm run build`
+- **Incremental Testing**: Build after each major change
+- **Database Sync**: `npx prisma generate` after schema changes
 
-#### Proactive Testing Strategy
+### Smart Contract Security
+- Access control, reentrancy protection, gas optimization
+- Unit + integration tests, edge case testing
+- Test on local/testnet before mainnet
 
-- **Incremental Builds**: Test builds after each major change, not just at the end
-- **TypeScript Validation**: Run `npx tsc --noEmit` for pure type checking
-- **Dependency Verification**: Check imports and exports after file restructuring
-- **Database Sync**: Verify `npx prisma generate` after schema changes
-
-### 🗄️ Schema Investigation Protocol
-
-#### Before Implementation Checklist
-
-1. **Verify Database Schema**: Always check actual Prisma schema definitions
-2. **Trace Data Structures**: Follow interface definitions through the codebase
-3. **Validate Field Names**: Don't assume field naming conventions
-4. **Check Relationships**: Understand model relationships before querying
-
-#### Common Schema Pitfalls
-
-- **Assumption Errors**: Making assumptions about field names/structures
-- **Interface Misalignment**: Frontend interfaces not matching database schema
-- **Relationship Complexity**: Not understanding foreign key relationships
-- **Type Mismatches**: TypeScript interfaces not reflecting actual data structures
-
-### 🔧 Multi-Phase Implementation Approach
-
-#### Systematic Phase Breakdown
-
-- **Phase 1**: Analysis & Preparation (10-15%)
-- **Phase 2**: Core Implementation (40-50%)
-- **Phase 3**: Integration & Testing (25-30%)
-- **Phase 4**: Documentation & Cleanup (10-15%)
-
-#### Phase Management Best Practices
-
-- **Clear Phase Objectives**: Define specific deliverables for each phase
-- **Dependency Mapping**: Identify cross-phase dependencies upfront
-- **Progress Checkpoints**: Validate phase completion before proceeding
-- **Issue Tracking**: Update GitHub issues after each phase completion
-
-### 🔒 Smart Contract Best Practices
-
-#### Contract Security Guidelines
-
-- **Access Control**: Implement proper owner/admin controls for sensitive functions
-- **Reentrancy Protection**: Use ReentrancyGuard for functions handling external calls
-- **Integer Overflow**: Use SafeMath or Solidity 0.8+ built-in overflow protection
-- **Gas Optimization**: Minimize storage operations and external calls
-
-#### Testing Strategy
-
-1. **Unit Tests**: Test each contract function in isolation
-2. **Integration Tests**: Test complete user workflows
-3. **Edge Cases**: Test boundary conditions and error scenarios
-4. **Gas Analysis**: Monitor gas usage and optimize expensive operations
-
-### 📝 Documentation Standards
-
-#### PR Description Requirements
-
-- **Implementation Summary**: Clear overview of changes made
-- **Technical Details**: Specific technical implementation notes
-- **Before/After Analysis**: Impact assessment and improvement metrics
-- **Testing Validation**: Build success and functionality verification
-
-#### Retrospective Documentation
-
-- **AI Diary**: First-person reflection on approach and decision-making
-- **Honest Feedback**: Critical assessment of session efficiency and quality
-- **Pattern Recognition**: Identification of reusable patterns and approaches
-- **Lessons Learned**: Specific insights for future implementation improvement
+### Multi-Phase Implementation (4-phase approach)
+1. Analysis & Preparation (10-15%)
+2. Core Implementation (40-50%)
+3. Integration & Testing (25-30%)
+4. Documentation & Cleanup (10-15%)
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
-
-#### Build Failures
-
+### Build Issues
 ```bash
-# Check for type errors or syntax issues
-npm run build 2>&1 | grep -A 5 "error"
-
-# Clear cache and reinstall dependencies
-rm -rf node_modules .next .cache
-npm install
-
-# Reset Prisma client
-npx prisma generate
+npm run build 2>&1 | grep -A 5 "error"  # Check errors
+rm -rf node_modules .next .cache && npm install  # Reset
+npx prisma generate  # Reset Prisma
 ```
 
-#### Contract Deployment Issues
+### Smart Contract Issues
+- **Deployment**: Test locally first (`npx hardhat node`)
+- **ABI Sync**: Regenerate types after redeployment
+- **Network Config**: Verify Hardhat configuration
+- **Gas Issues**: Check gas prices, use ETH Gas Station
 
-```bash
-# Clean and recompile contracts
-npx hardhat clean
-npx hardhat compile
+### Web3 Integration
+- Verify contract addresses match frontend config
+- Regenerate contract types: `npx typechain`
+- Test incremental changes with build validation
+- Check wallet connection and network selection
 
-# Check deployment script
-node scripts/deploy.js
-
-# Verify contract on testnet first
-npx hardhat run scripts/deploy.js --network sepolia
-```
-
-#### Smart Contract Issues
-
-**Common Contract Deployment Issues:**
-
-- Gas estimation failures during deployment
-- Contract verification failures on Etherscan
-- ABI mismatch between frontend and deployed contracts
-- Network configuration problems
-
-**Diagnosis and Resolution:**
-
-- Check gas prices: Use tools like ETH Gas Station for current rates
-- Verify network configuration in Hardhat config
-- Regenerate contract types after redeployment: `npx typechain`
-- Test on local network first: `npx hardhat node`
-
-**Prevention strategies:**
-
-- Always test contracts thoroughly on local network
-- Use consistent compiler versions across environments
-- Maintain proper contract verification scripts
-- Keep deployment addresses organized per network
-
-#### Web3 Integration Errors
-
-_Contract ABI and type safety are critical for Web3 applications_
-
-**Common Integration Issues:**
-
-- **ABI Sync**: `npx typechain --target ethers-v5 --out-dir types/contracts`
-- **Type Validation**: `npm run build && npx tsc --noEmit`
-- **Contract Types**: Regenerate types after contract redeployment
-
-**Web3 Integration Protocol:**
-
-1. **Never assume contract addresses** - Always verify deployed addresses
-2. **Trace contract interactions** - Follow transaction flows through wagmi hooks
-3. **Verify network compatibility** - Check contract deployment on target networks
-4. **Test incremental changes** - Run build after each Web3 integration change
-
-**Common pitfalls**: Stale contract addresses, outdated ABIs, network mismatches
-
-#### Web3 Connection Issues
-
-```bash
-# Check wallet connection
-# Verify MetaMask is installed and connected
-# Ensure correct network is selected
-
-# Check contract addresses
-echo "Verify deployed contract addresses match frontend configuration"
-
-# Test contract interactions
-# Use Hardhat console for contract debugging
-npx hardhat console --network localhost
-```
-
-#### Port Conflicts
-
-```bash
-# Find the process using port 3000
-lsof -i :3000
-
-# Kill the process
-kill -9 [PID]
-
-# Use alternative port
-npm run dev -- -p 3001
-```
-
-#### Blockchain Network Issues
-
-```bash
-# Check network connectivity
-curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' https://mainnet.infura.io/v3/YOUR_PROJECT_ID
-
-# Verify wallet balance
-# Check if wallet has sufficient ETH for gas fees
-
-# Test transaction simulation
-# Use tools like Tenderly for transaction debugging
-```
-
-#### Security Implementation Issues
-
-_From comprehensive security audit retrospectives_
-
-**Rate Limiting Configuration Missing:**
-
-- Check patterns in `src/middleware/rate-limiter.ts`
-- API config: `{ windowMs: 15 * 60 * 1000, max: 100 }`
-- Admin config: `{ windowMs: 15 * 60 * 1000, max: 20 }`
-
-**Webhook Security Hardening:**
-
-- Never log webhook secrets in error messages
-- Use generic error responses to prevent information disclosure
-- Implement timestamp-based replay protection (5-minute window)
-- Use `stripe.webhooks.constructEvent()` for signature validation
-
-**Input Validation Enhancement:**
-
-- Implement comprehensive Zod schemas for all API endpoints
-- Example: Payment validation with amount limits, currency restrictions, UUID validation
-
-#### System Integration Issues
-
-_From reward configuration and campaign implementation sessions_
-
-**RewardConfiguration Integration:**
-
-- Always check existing database records first: `npx prisma studio --port 5555`
-- Create temporary validation scripts for testing database operations
-- Use `PrismaClient` for isolated testing of specific queries
-
-**Campaign System Testing:**
-
-- Test campaign eligibility detection
-- Verify PaymentHistory queries for first payment detection
-- Validate campaign discount application in Stripe integration
-- Debug with API calls to campaign endpoints
-
-#### Visual Design and Accessibility Issues
-
-_From UI/UX refactoring sessions_
-
-**Color Contrast and Accessibility Problems:**
-
-- Use automated contrast checking tools
-- Validate WCAG 2.1 AA compliance (4.5:1 ratio minimum)
-- Test with screen readers when possible
-- Check banner text readability and promotional element contrast
-- Test reduced motion preferences
-
-**Styling System Conflicts:**
-
-- Avoid duplication with centralized utilities
-- Implement proper TypeScript interfaces for styling configs
-- Follow existing component patterns and design tokens
-- Use `src/utils/campaignStyles.ts` and `src/components/common/`
-
-#### Database Migration and Schema Issues
-
-_From database migration and system reset sessions_
-
-**Migration Safety Protocol:**
-
-- Always create comprehensive backups before major changes
-- Preserve critical data (Card and Prompt tables)
-- Use timestamped backup files: `backup-$(date +%Y-%m-%d-%H%M).db`
-- Use `npx prisma db seed` for critical data restoration
-
-**Schema Assumptions Prevention:**
-
-- Never assume field names without verification
-- Always check actual Prisma schema definitions
-- Trace data structures through the entire codebase
-- Use `grep` commands to trace field usage across codebase
-
-### Performance Monitoring
-
-- **Core Web Vitals**: Monitor LCP (<2.5s), FID (<100ms), CLS (<0.1)
-- **Transaction Times**: Monitor blockchain transaction confirmation times
-- **Gas Usage**: Track and optimize contract gas consumption
-- **Web3 Connection**: Monitor wallet connection reliability and RPC response times
-- **Contract Interaction**: Track success rates of contract function calls
-- **Error Rates**: Monitor failed transactions and connection issues
+### Common Fixes
+- **Port conflicts**: `lsof -i :3000` then `kill -9 [PID]`
+- **Schema issues**: Always verify Prisma schema, never assume field names
+- **Security**: Use Zod validation, generic error responses
+- **Performance**: Monitor Core Web Vitals, gas usage, transaction times
