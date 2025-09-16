@@ -96,7 +96,7 @@ contract Randomness is AccessControl {
             return min;
         }
 
-        uint256 randomNumber = generateRandomNumber(requestId);
+        uint256 randomNumber = this.generateRandomNumber(requestId);
         uint256 range = max - min + 1;
 
         return min + (randomNumber % range);

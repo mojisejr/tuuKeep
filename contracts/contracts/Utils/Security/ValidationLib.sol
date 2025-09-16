@@ -60,9 +60,22 @@ library ValidationLib {
      */
     function validateContract(address addr, string memory context) internal view {
         validateAddress(addr, context);
-        if (!addr.isContract()) {
+        if (!_isContract(addr)) {
             revert InvalidAddress(addr, string(abi.encodePacked("Address must be a contract for ", context)));
         }
+    }
+
+    /**
+     * @dev Check if an address is a contract
+     * @param addr The address to check
+     * @return true if the address is a contract, false otherwise
+     */
+    function _isContract(address addr) private view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(addr)
+        }
+        return size > 0;
     }
 
     /**

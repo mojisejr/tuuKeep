@@ -82,7 +82,7 @@ library SafeTransferLib {
         IERC20 token,
         address to,
         uint256 amount
-    ) external returns (TransferResult memory result) {
+    ) internal returns (TransferResult memory result) {
         uint256 gasStart = gasleft();
 
         // Input validation
@@ -124,32 +124,17 @@ library SafeTransferLib {
             });
         }
 
-        // Execute transfer
-        try token.safeTransfer(to, amount) {
-            uint256 gasUsed = gasStart - gasleft();
-            emit SafeTransferExecuted(address(token), address(this), to, amount, gasUsed);
+        // Execute transfer using SafeERC20 - SafeERC20 already handles reverts
+        token.safeTransfer(to, amount);
+        uint256 gasUsed = gasStart - gasleft();
+        emit SafeTransferExecuted(address(token), address(this), to, amount, gasUsed);
 
-            return TransferResult({
-                success: true,
-                data: "",
-                gasUsed: gasUsed,
-                errorMessage: ""
-            });
-        } catch Error(string memory reason) {
-            return TransferResult({
-                success: false,
-                data: "",
-                gasUsed: gasStart - gasleft(),
-                errorMessage: reason
-            });
-        } catch (bytes memory data) {
-            return TransferResult({
-                success: false,
-                data: data,
-                gasUsed: gasStart - gasleft(),
-                errorMessage: "Transfer failed with low-level error"
-            });
-        }
+        return TransferResult({
+            success: true,
+            data: "",
+            gasUsed: gasUsed,
+            errorMessage: ""
+        });
     }
 
     /**
@@ -165,7 +150,7 @@ library SafeTransferLib {
         address from,
         address to,
         uint256 amount
-    ) external returns (TransferResult memory result) {
+    ) internal returns (TransferResult memory result) {
         uint256 gasStart = gasleft();
 
         // Input validation
@@ -209,32 +194,17 @@ library SafeTransferLib {
             });
         }
 
-        // Execute transfer
-        try token.safeTransferFrom(from, to, amount) {
-            uint256 gasUsed = gasStart - gasleft();
-            emit SafeTransferExecuted(address(token), from, to, amount, gasUsed);
+        // Execute transfer using SafeERC20 - SafeERC20 already handles reverts
+        token.safeTransferFrom(from, to, amount);
+        uint256 gasUsed = gasStart - gasleft();
+        emit SafeTransferExecuted(address(token), from, to, amount, gasUsed);
 
-            return TransferResult({
-                success: true,
-                data: "",
-                gasUsed: gasUsed,
-                errorMessage: ""
-            });
-        } catch Error(string memory reason) {
-            return TransferResult({
-                success: false,
-                data: "",
-                gasUsed: gasStart - gasleft(),
-                errorMessage: reason
-            });
-        } catch (bytes memory data) {
-            return TransferResult({
-                success: false,
-                data: data,
-                gasUsed: gasStart - gasleft(),
-                errorMessage: "TransferFrom failed with low-level error"
-            });
-        }
+        return TransferResult({
+            success: true,
+            data: "",
+            gasUsed: gasUsed,
+            errorMessage: ""
+        });
     }
 
     /**
@@ -250,7 +220,7 @@ library SafeTransferLib {
         address from,
         address to,
         uint256 tokenId
-    ) external returns (TransferResult memory result) {
+    ) internal returns (TransferResult memory result) {
         uint256 gasStart = gasleft();
 
         // Input validation
@@ -350,7 +320,7 @@ library SafeTransferLib {
         uint256 failureCount = 0;
 
         for (uint256 i = 0; i < transfers.length; i++) {
-            results[i] = this.safeTransferERC20(
+            results[i] = safeTransferERC20(
                 transfers[i].token,
                 transfers[i].to,
                 transfers[i].amount
@@ -383,7 +353,7 @@ library SafeTransferLib {
         uint256 failureCount = 0;
 
         for (uint256 i = 0; i < transfers.length; i++) {
-            results[i] = this.safeTransferERC721(
+            results[i] = safeTransferERC721(
                 transfers[i].token,
                 transfers[i].from,
                 transfers[i].to,
