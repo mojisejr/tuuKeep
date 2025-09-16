@@ -35,12 +35,20 @@ describe("TuuKeepCabinet", function () {
     ]);
     tuuCoinAddress = getAddress(tuuCoinContract.address);
 
-    // Deploy TuuKeepCabinet
+    // Deploy SVGGenerator library first
+    const svgGeneratorLib = await viem.deployContract("SVGGenerator");
+    const svgGeneratorAddress = getAddress(svgGeneratorLib.address);
+
+    // Deploy TuuKeepCabinet with library linking
     cabinetContract = await viem.deployContract("TuuKeepCabinet", [
       accessControlAddress,
       tuuCoinAddress,
       feeRecipient.account.address
-    ]);
+    ], {
+      libraries: {
+        SVGGenerator: svgGeneratorAddress,
+      },
+    });
     cabinetAddress = getAddress(cabinetContract.address);
   });
 
@@ -72,12 +80,19 @@ describe("TuuKeepCabinet", function () {
     });
 
     it("Should revert with invalid constructor parameters", async function () {
+      const svgGeneratorLib = await viem.deployContract("SVGGenerator");
+      const svgGeneratorAddress = getAddress(svgGeneratorLib.address);
+
       await expect(
         viem.deployContract("TuuKeepCabinet", [
           zeroAddress,
           tuuCoinAddress,
           feeRecipient.account.address
-        ])
+        ], {
+          libraries: {
+            SVGGenerator: svgGeneratorAddress,
+          },
+        })
       ).to.be.rejected;
 
       await expect(
@@ -85,7 +100,11 @@ describe("TuuKeepCabinet", function () {
           accessControlAddress,
           zeroAddress,
           feeRecipient.account.address
-        ])
+        ], {
+          libraries: {
+            SVGGenerator: svgGeneratorAddress,
+          },
+        })
       ).to.be.rejected;
 
       await expect(
@@ -93,7 +112,11 @@ describe("TuuKeepCabinet", function () {
           accessControlAddress,
           tuuCoinAddress,
           zeroAddress
-        ])
+        ], {
+          libraries: {
+            SVGGenerator: svgGeneratorAddress,
+          },
+        })
       ).to.be.rejected;
     });
   });

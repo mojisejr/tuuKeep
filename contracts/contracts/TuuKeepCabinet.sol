@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 import "./Utils/Security/TuuKeepAccessControl.sol";
 import "./Utils/Security/TuuKeepReentrancyGuard.sol";
 import "./Utils/Security/ValidationLib.sol";
+import "./Utils/SVGGenerator.sol";
 import "./TuuCoin.sol";
 
 /**
@@ -73,8 +74,8 @@ contract TuuKeepCabinet is
 
     uint256 private _tokenIdCounter;
     uint256 public constant MAX_CABINETS = 10000;
-    uint256 public constant DEFAULT_PLATFORM_FEE_RATE = 500; // 5%
-    uint256 public constant MAX_PLATFORM_FEE_RATE = 1000; // 10%
+    uint256 public constant DEFAULT_PLATFORM_FEE_RATE = 500;
+    uint256 public constant MAX_PLATFORM_FEE_RATE = 1000;
     address public platformFeeRecipient;
 
     // Events
@@ -185,7 +186,7 @@ contract TuuKeepCabinet is
         nonReentrant
         returns (uint256)
     {
-        require(to != address(0), "Cannot mint to zero address");
+        require(to != address(0), "Invalid address");
         ValidationLib.validateNonEmptyString(cabinetName, "cabinet name");
 
         if (_tokenIdCounter >= MAX_CABINETS) {
@@ -261,9 +262,9 @@ contract TuuKeepCabinet is
         cabinetExists(tokenId)
         nonReentrant
     {
-        require(config.playPrice > 0, "Play price must be positive");
-        require(config.maxItems > 0 && config.maxItems <= 50, "Invalid max items");
-        require(config.feeRecipient != address(0), "Invalid fee recipient");
+        require(config.playPrice > 0, "Invalid price");
+        require(config.maxItems > 0 && config.maxItems <= 50, "Invalid items");
+        require(config.feeRecipient != address(0), "Invalid recipient");
 
         if (config.platformFeeRate > MAX_PLATFORM_FEE_RATE) {
             revert InvalidFeeRate(config.platformFeeRate);
@@ -377,7 +378,7 @@ contract TuuKeepCabinet is
     }
 
     /**
-     * @dev Generate dynamic SVG for cabinet NFT
+     * @dev Generate dynamic SVG for cabinet NFT using external library
      * @param tokenId Cabinet token ID
      * @return SVG string
      */
@@ -387,37 +388,12 @@ contract TuuKeepCabinet is
         returns (string memory)
     {
         CabinetMetadata memory metadata = cabinetMetadata[tokenId];
-
-        // Color scheme based on cabinet status
-        string memory primaryColor = metadata.isActive ? "#4CAF50" : "#9E9E9E";
-        string memory accentColor = metadata.isActive ? "#81C784" : "#BDBDBD";
-
-        return string(abi.encodePacked(
-            '<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">',
-            '<defs>',
-            '<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">',
-            '<stop offset="0%" style="stop-color:', primaryColor, ';stop-opacity:1" />',
-            '<stop offset="100%" style="stop-color:', accentColor, ';stop-opacity:1" />',
-            '</linearGradient>',
-            '</defs>',
-            '<rect width="400" height="400" fill="url(#bg)"/>',
-            '<rect x="50" y="80" width="300" height="240" fill="#2C2C2C" rx="20"/>',
-            '<rect x="70" y="100" width="260" height="120" fill="#1A1A1A" rx="10"/>',
-            '<circle cx="200" cy="160" r="30" fill="', primaryColor, '"/>',
-            '<text x="200" y="280" text-anchor="middle" fill="white" font-family="Arial" font-size="16" font-weight="bold">',
+        return SVGGenerator.generateCabinetSVG(
+            tokenId,
             metadata.name,
-            '</text>',
-            '<text x="200" y="300" text-anchor="middle" fill="#CCCCCC" font-family="Arial" font-size="12">',
-            'Cabinet #', tokenId.toString(),
-            '</text>',
-            '<text x="200" y="320" text-anchor="middle" fill="#CCCCCC" font-family="Arial" font-size="10">',
-            metadata.isActive ? 'ACTIVE' : 'INACTIVE',
-            '</text>',
-            '<text x="200" y="350" text-anchor="middle" fill="#CCCCCC" font-family="Arial" font-size="10">',
-            'Plays: ', metadata.totalPlays.toString(),
-            '</text>',
-            '</svg>'
-        ));
+            metadata.isActive,
+            metadata.totalPlays
+        );
     }
 
     /**
@@ -478,7 +454,7 @@ contract TuuKeepCabinet is
         external
         onlyRole(PLATFORM_ADMIN_ROLE)
     {
-        require(newRecipient != address(0), "Invalid recipient address");
+        require(newRecipient != address(0), "Invalid address");
         platformFeeRecipient = newRecipient;
     }
 
