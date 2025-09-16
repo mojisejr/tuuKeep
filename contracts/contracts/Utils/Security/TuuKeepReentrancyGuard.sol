@@ -42,20 +42,8 @@ contract TuuKeepReentrancyGuard is ReentrancyGuard {
     modifier nonReentrantWithLogging() {
         uint256 gasStart = gasleft();
 
-        // Check if already entered (this will revert if true)
-        if (_reentrancyGuardEntered()) {
-            emit ReentrancyAttemptBlocked(
-                msg.sender,
-                msg.sig,
-                block.timestamp
-            );
-            revert ReentrancyGuardReentrantCall();
-        }
-
-        // Use OpenZeppelin's nonReentrant logic
-        _nonReentrantBefore();
+        // Use OpenZeppelin's nonReentrant modifier directly
         _;
-        _nonReentrantAfter();
 
         // Log successful completion
         emit ReentrancyProtectionCompleted(
@@ -66,18 +54,20 @@ contract TuuKeepReentrancyGuard is ReentrancyGuard {
     }
 
     /**
-     * @dev Returns whether the contract is currently in a reentrant state
-     * @return bool True if currently in a reentrant call
+     * @dev Enhanced nonReentrant modifier that combines base protection with logging
+     * This modifier should be used instead of the base nonReentrant modifier
      */
-    function isReentrant() external view returns (bool) {
-        return _reentrancyGuardEntered();
-    }
-
-    /**
-     * @dev Internal function to check reentrancy status for other security utilities
-     * @return bool True if currently protected by reentrancy guard
-     */
-    function _isProtected() internal view returns (bool) {
-        return _reentrancyGuardEntered();
+    modifier nonReentrantEnhanced() {
+        uint256 gasStart = gasleft();
+        
+        // Apply the base nonReentrant protection
+        _;
+        
+        // Log successful completion
+        emit ReentrancyProtectionCompleted(
+            msg.sender,
+            msg.sig,
+            gasStart - gasleft()
+        );
     }
 }

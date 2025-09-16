@@ -179,7 +179,7 @@ contract TuuKeepAccessControl is AccessControl {
      * @param role The role associated with the action
      */
     function trackActivity(address account, bytes32 role) external {
-        require(hasActiveRole(role, account), "TuuKeepAccessControl: account lacks active role");
+        require(hasRole(role, account), "TuuKeepAccessControl: account lacks active role");
 
         _lastActivity[account] = block.timestamp;
         emit ActivityTracked(account, role, block.timestamp);
