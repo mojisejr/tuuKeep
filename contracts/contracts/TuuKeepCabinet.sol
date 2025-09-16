@@ -3,6 +3,8 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -23,12 +25,20 @@ import "./TuuCoin.sol";
  * - Cabinet configuration and management
  * - Integration with TuuCoin ecosystem
  * - Role-based access control and security
+ * - Comprehensive asset management system for gacha items
  *
  * Cabinet Economy:
  * - Cabinet owners can configure play prices and settings
  * - Cabinets generate revenue from player interactions
  * - Dynamic metadata reflects cabinet status and statistics
  * - SVG artwork generated on-chain for each cabinet
+ *
+ * Asset Management:
+ * - Secure deposit/withdrawal of ERC-721 NFTs and ERC-20 tokens
+ * - Maximum 10 items per cabinet limitation
+ * - Item rarity system (1-5 levels) for gacha mechanics
+ * - Active/inactive status management for individual items
+ * - Comprehensive validation and security controls
  */
 contract TuuKeepCabinet is
     ERC721,
@@ -68,9 +78,31 @@ contract TuuKeepCabinet is
         bool allowsCustomOdds;      // Whether TuuCoin burning for odds is allowed
     }
 
+    // Asset type enumeration for gacha items
+    enum AssetType {
+        ERC721,
+        ERC20
+    }
+
+    // Gacha item structure for cabinet assets
+    struct GachaItem {
+        AssetType assetType;        // ERC721 or ERC20
+        address contractAddress;    // Token contract address
+        uint256 tokenIdOrAmount;    // NFT tokenId or ERC20 amount
+        uint256 rarity;             // Rarity level (1-5)
+        string metadata;            // Item description/name
+        uint256 depositTime;        // When item was deposited
+        bool isActive;              // Available for gacha play
+    }
+
     // State variables
     mapping(uint256 => CabinetMetadata) public cabinetMetadata;
     mapping(uint256 => CabinetConfig) public cabinetConfig;
+
+    // Asset management mappings
+    mapping(uint256 => GachaItem[]) public cabinetItems;        // Cabinet ID => items array
+    mapping(uint256 => mapping(uint256 => bool)) public itemExists;  // Cabinet ID => item index => exists
+    mapping(uint256 => uint256) public itemCount;               // Cabinet ID => total items count
 
     uint256 private _tokenIdCounter;
     uint256 public constant MAX_CABINETS = 10000;
@@ -112,6 +144,37 @@ contract TuuKeepCabinet is
         uint256 timestamp
     );
 
+    event ItemDeposited(
+        uint256 indexed cabinetId,
+        uint256 indexed itemIndex,
+        AssetType assetType,
+        address contractAddress,
+        uint256 tokenIdOrAmount,
+        uint256 rarity,
+        uint256 timestamp
+    );
+
+    event ItemWithdrawn(
+        uint256 indexed cabinetId,
+        uint256 indexed itemIndex,
+        AssetType assetType,
+        address contractAddress,
+        uint256 tokenIdOrAmount,
+        uint256 timestamp
+    );
+
+    event ItemActivated(
+        uint256 indexed cabinetId,
+        uint256 indexed itemIndex,
+        uint256 timestamp
+    );
+
+    event ItemDeactivated(
+        uint256 indexed cabinetId,
+        uint256 indexed itemIndex,
+        uint256 timestamp
+    );
+
     // Custom errors
     error CabinetNotExists(uint256 tokenId);
     error NotCabinetOwner(uint256 tokenId, address caller);
@@ -119,6 +182,12 @@ contract TuuKeepCabinet is
     error InvalidConfiguration();
     error MaxCabinetsReached();
     error InvalidFeeRate(uint256 rate);
+    error ItemNotFound(uint256 cabinetId, uint256 itemIndex);
+    error CabinetFull(uint256 cabinetId, uint256 maxItems);
+    error InvalidAssetType(AssetType provided);
+    error InvalidRarity(uint256 rarity);
+    error DuplicateItem(uint256 cabinetId, address contractAddress, uint256 tokenIdOrAmount);
+    error InsufficientAssetBalance(address token, address owner, uint256 required);
 
     /**
      * @dev Constructor initializes the cabinet NFT contract
@@ -312,6 +381,125 @@ contract TuuKeepCabinet is
     }
 
     /**
+     * @dev Deposit items into cabinet for gacha gameplay
+     * @param cabinetId Cabinet token ID
+     * @param items Array of gacha items to deposit
+     */
+    function depositItems(
+        uint256 cabinetId,
+        GachaItem[] calldata items
+    )
+        external
+        onlyTokenOwner(cabinetId)
+        cabinetExists(cabinetId)
+        nonReentrant
+    {
+        require(items.length > 0, "No items provided");
+
+        // Check cabinet item limit
+        uint256 currentCount = itemCount[cabinetId];
+        uint256 newCount = currentCount + items.length;
+
+        ValidationLib.validateCabinetItems(newCount);
+
+        if (newCount > ValidationLib.MAX_CABINET_ITEMS) {
+            revert CabinetFull(cabinetId, ValidationLib.MAX_CABINET_ITEMS);
+        }
+
+        // Process each item
+        for (uint256 i = 0; i < items.length; i++) {
+            GachaItem calldata item = items[i];
+
+            // Validate item data
+            _validateGachaItem(item, cabinetId);
+
+            // Transfer asset to contract for escrow
+            _transferAssetToContract(item, msg.sender);
+
+            // Add item to storage
+            uint256 itemIndex = cabinetItems[cabinetId].length;
+
+            GachaItem memory newItem = GachaItem({
+                assetType: item.assetType,
+                contractAddress: item.contractAddress,
+                tokenIdOrAmount: item.tokenIdOrAmount,
+                rarity: item.rarity,
+                metadata: item.metadata,
+                depositTime: block.timestamp,
+                isActive: true
+            });
+
+            cabinetItems[cabinetId].push(newItem);
+            itemExists[cabinetId][itemIndex] = true;
+
+            emit ItemDeposited(
+                cabinetId,
+                itemIndex,
+                item.assetType,
+                item.contractAddress,
+                item.tokenIdOrAmount,
+                item.rarity,
+                block.timestamp
+            );
+        }
+
+        // Update item count
+        itemCount[cabinetId] = newCount;
+    }
+
+    /**
+     * @dev Withdraw items from cabinet (cabinet owner only)
+     * @param cabinetId Cabinet token ID
+     * @param itemIndices Array of item indices to withdraw
+     */
+    function withdrawItems(
+        uint256 cabinetId,
+        uint256[] calldata itemIndices
+    )
+        external
+        onlyTokenOwner(cabinetId)
+        cabinetExists(cabinetId)
+        nonReentrant
+    {
+        require(itemIndices.length > 0, "No items specified");
+
+        address cabinetOwner = ownerOf(cabinetId);
+
+        // Process withdrawals in reverse order to avoid index shifting issues
+        for (uint256 i = itemIndices.length; i > 0; i--) {
+            uint256 itemIndex = itemIndices[i - 1];
+
+            if (itemIndex >= cabinetItems[cabinetId].length) {
+                revert ItemNotFound(cabinetId, itemIndex);
+            }
+
+            if (!itemExists[cabinetId][itemIndex]) {
+                revert ItemNotFound(cabinetId, itemIndex);
+            }
+
+            GachaItem storage item = cabinetItems[cabinetId][itemIndex];
+
+            // Transfer asset back to owner
+            _transferAssetFromContract(item, cabinetOwner);
+
+            emit ItemWithdrawn(
+                cabinetId,
+                itemIndex,
+                item.assetType,
+                item.contractAddress,
+                item.tokenIdOrAmount,
+                block.timestamp
+            );
+
+            // Remove item from storage
+            _removeItem(cabinetId, itemIndex);
+        }
+
+        // Update item count
+        itemCount[cabinetId] = cabinetItems[cabinetId].length;
+    }
+
+    /**
      * @dev Update cabinet statistics (internal use)
      * @param tokenId Cabinet token ID
      * @param additionalPlays Number of new plays to add
@@ -378,6 +566,142 @@ contract TuuKeepCabinet is
     }
 
     /**
+     * @dev Validate gacha item data
+     * @param item The gacha item to validate
+     * @param cabinetId Cabinet ID for context
+     */
+    function _validateGachaItem(GachaItem calldata item, uint256 cabinetId) internal view {
+        // Validate contract address
+        ValidationLib.validateContract(item.contractAddress, "asset contract");
+
+        // Validate rarity (1-5)
+        if (item.rarity < 1 || item.rarity > 5) {
+            revert InvalidRarity(item.rarity);
+        }
+
+        // Validate metadata string
+        ValidationLib.validateNonEmptyString(item.metadata, "item metadata");
+
+        // Validate asset-specific requirements
+        if (item.assetType == AssetType.ERC721) {
+            // For ERC721, validate ownership
+            ValidationLib.validateERC721Ownership(
+                IERC721(item.contractAddress),
+                msg.sender,
+                item.tokenIdOrAmount
+            );
+        } else if (item.assetType == AssetType.ERC20) {
+            // For ERC20, validate balance and allowance
+            ValidationLib.validateERC20Balance(
+                IERC20(item.contractAddress),
+                msg.sender,
+                item.tokenIdOrAmount
+            );
+
+            ValidationLib.validateERC20Allowance(
+                IERC20(item.contractAddress),
+                msg.sender,
+                address(this),
+                item.tokenIdOrAmount
+            );
+        } else {
+            revert InvalidAssetType(item.assetType);
+        }
+
+        // Check for duplicate items in cabinet
+        _validateNoDuplicateItem(cabinetId, item.contractAddress, item.tokenIdOrAmount);
+    }
+
+    /**
+     * @dev Check for duplicate items in cabinet
+     * @param cabinetId Cabinet ID
+     * @param contractAddress Asset contract address
+     * @param tokenIdOrAmount Token ID or amount
+     */
+    function _validateNoDuplicateItem(
+        uint256 cabinetId,
+        address contractAddress,
+        uint256 tokenIdOrAmount
+    ) internal view {
+        GachaItem[] storage items = cabinetItems[cabinetId];
+        for (uint256 i = 0; i < items.length; i++) {
+            if (items[i].contractAddress == contractAddress &&
+                items[i].tokenIdOrAmount == tokenIdOrAmount) {
+                revert DuplicateItem(cabinetId, contractAddress, tokenIdOrAmount);
+            }
+        }
+    }
+
+    /**
+     * @dev Transfer asset from user to contract for escrow
+     * @param item The gacha item to transfer
+     * @param from Address to transfer from
+     */
+    function _transferAssetToContract(GachaItem calldata item, address from) internal {
+        if (item.assetType == AssetType.ERC721) {
+            IERC721(item.contractAddress).safeTransferFrom(
+                from,
+                address(this),
+                item.tokenIdOrAmount
+            );
+        } else if (item.assetType == AssetType.ERC20) {
+            bool success = IERC20(item.contractAddress).transferFrom(
+                from,
+                address(this),
+                item.tokenIdOrAmount
+            );
+            require(success, "ERC20 transfer failed");
+        }
+    }
+
+    /**
+     * @dev Transfer asset from contract back to user
+     * @param item The gacha item to transfer
+     * @param to Address to transfer to
+     */
+    function _transferAssetFromContract(GachaItem storage item, address to) internal {
+        if (item.assetType == AssetType.ERC721) {
+            IERC721(item.contractAddress).safeTransferFrom(
+                address(this),
+                to,
+                item.tokenIdOrAmount
+            );
+        } else if (item.assetType == AssetType.ERC20) {
+            bool success = IERC20(item.contractAddress).transfer(
+                to,
+                item.tokenIdOrAmount
+            );
+            require(success, "ERC20 transfer failed");
+        }
+    }
+
+    /**
+     * @dev Remove item from cabinet storage
+     * @param cabinetId Cabinet ID
+     * @param itemIndex Index of item to remove
+     */
+    function _removeItem(uint256 cabinetId, uint256 itemIndex) internal {
+        GachaItem[] storage items = cabinetItems[cabinetId];
+        uint256 lastIndex = items.length - 1;
+
+        // Move last item to the position being removed
+        if (itemIndex != lastIndex) {
+            items[itemIndex] = items[lastIndex];
+            // Update existence mapping for moved item
+            itemExists[cabinetId][itemIndex] = true;
+        }
+
+        // Remove last item and update existence mapping
+        items.pop();
+        itemExists[cabinetId][lastIndex] = false;
+
+        // If we moved an item, clear its old position
+        if (itemIndex != lastIndex) {
+            itemExists[cabinetId][lastIndex] = false;
+        }
+    }
+
+    /**
      * @dev Generate dynamic SVG for cabinet NFT using external library
      * @param tokenId Cabinet token ID
      * @return SVG string
@@ -422,6 +746,110 @@ contract TuuKeepCabinet is
         returns (CabinetMetadata memory metadata, CabinetConfig memory config)
     {
         return (cabinetMetadata[tokenId], cabinetConfig[tokenId]);
+    }
+
+    /**
+     * @dev Get all items in a cabinet
+     * @param cabinetId Cabinet token ID
+     * @return Array of gacha items
+     */
+    function getCabinetItems(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (GachaItem[] memory)
+    {
+        return cabinetItems[cabinetId];
+    }
+
+    /**
+     * @dev Get specific item from cabinet
+     * @param cabinetId Cabinet token ID
+     * @param itemIndex Index of the item
+     * @return The gacha item
+     */
+    function getCabinetItem(uint256 cabinetId, uint256 itemIndex)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (GachaItem memory)
+    {
+        require(itemIndex < cabinetItems[cabinetId].length, "Item index out of bounds");
+        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+        return cabinetItems[cabinetId][itemIndex];
+    }
+
+    /**
+     * @dev Get number of items in cabinet
+     * @param cabinetId Cabinet token ID
+     * @return Number of items
+     */
+    function getCabinetItemCount(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256)
+    {
+        return itemCount[cabinetId];
+    }
+
+    /**
+     * @dev Get active items in cabinet (available for gacha play)
+     * @param cabinetId Cabinet token ID
+     * @return Array of active gacha items
+     */
+    function getActiveCabinetItems(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (GachaItem[] memory)
+    {
+        GachaItem[] memory allItems = cabinetItems[cabinetId];
+        uint256 activeCount = 0;
+
+        // Count active items
+        for (uint256 i = 0; i < allItems.length; i++) {
+            if (allItems[i].isActive) {
+                activeCount++;
+            }
+        }
+
+        // Create array of active items
+        GachaItem[] memory activeItems = new GachaItem[](activeCount);
+        uint256 activeIndex = 0;
+
+        for (uint256 i = 0; i < allItems.length; i++) {
+            if (allItems[i].isActive) {
+                activeItems[activeIndex] = allItems[i];
+                activeIndex++;
+            }
+        }
+
+        return activeItems;
+    }
+
+    /**
+     * @dev Toggle item active status (cabinet owner only)
+     * @param cabinetId Cabinet token ID
+     * @param itemIndex Index of item to toggle
+     */
+    function toggleItemStatus(uint256 cabinetId, uint256 itemIndex)
+        external
+        onlyTokenOwner(cabinetId)
+        cabinetExists(cabinetId)
+        nonReentrant
+    {
+        require(itemIndex < cabinetItems[cabinetId].length, "Item index out of bounds");
+        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+
+        GachaItem storage item = cabinetItems[cabinetId][itemIndex];
+        item.isActive = !item.isActive;
+
+        if (item.isActive) {
+            emit ItemActivated(cabinetId, itemIndex, block.timestamp);
+        } else {
+            emit ItemDeactivated(cabinetId, itemIndex, block.timestamp);
+        }
     }
 
     /**
