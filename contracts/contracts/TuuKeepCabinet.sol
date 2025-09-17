@@ -13,6 +13,7 @@ import "./Utils/Security/TuuKeepAccessControl.sol";
 import "./Utils/Security/TuuKeepReentrancyGuard.sol";
 import "./Utils/Security/ValidationLib.sol";
 import "./Utils/SVGGenerator.sol";
+import "./Utils/Randomness.sol";
 import "./TuuCoin.sol";
 
 /**
@@ -57,6 +58,7 @@ contract TuuKeepCabinet is
     // Platform integration
     TuuKeepAccessControl public immutable accessControl;
     TuuCoin public immutable tuuCoin;
+    Randomness public immutable randomness;
 
     // Cabinet metadata structure
     struct CabinetMetadata {
@@ -103,6 +105,11 @@ contract TuuKeepCabinet is
     mapping(uint256 => GachaItem[]) public cabinetItems;        // Cabinet ID => items array
     mapping(uint256 => mapping(uint256 => bool)) public itemExists;  // Cabinet ID => item index => exists
     mapping(uint256 => uint256) public itemCount;               // Cabinet ID => total items count
+
+    // Gameplay state
+    mapping(uint256 => uint256) public cabinetRevenue;          // Cabinet ID => accumulated revenue
+    mapping(address => uint256) public platformRevenue;         // Platform accumulated revenue by token
+    uint256 private _playRequestCounter;                        // Counter for randomness requests
 
     uint256 private _tokenIdCounter;
     uint256 public constant MAX_CABINETS = 10000;
@@ -175,6 +182,42 @@ contract TuuKeepCabinet is
         uint256 timestamp
     );
 
+    event GachaPlayed(
+        uint256 indexed cabinetId,
+        address indexed player,
+        uint256 playPrice,
+        uint256 tuuCoinAmount,
+        bool wonPrize,
+        uint256 itemIndex,
+        uint256 timestamp
+    );
+
+    event PrizeWon(
+        uint256 indexed cabinetId,
+        address indexed player,
+        uint256 indexed itemIndex,
+        AssetType assetType,
+        address contractAddress,
+        uint256 tokenIdOrAmount,
+        uint256 rarity,
+        uint256 timestamp
+    );
+
+    event RevenueDistributed(
+        uint256 indexed cabinetId,
+        address indexed cabinetOwner,
+        uint256 cabinetRevenue,
+        uint256 platformRevenue,
+        uint256 timestamp
+    );
+
+    event TuuCoinMinted(
+        uint256 indexed cabinetId,
+        address indexed player,
+        uint256 amount,
+        uint256 timestamp
+    );
+
     // Custom errors
     error CabinetNotExists(uint256 tokenId);
     error NotCabinetOwner(uint256 tokenId, address caller);
@@ -188,6 +231,10 @@ contract TuuKeepCabinet is
     error InvalidRarity(uint256 rarity);
     error DuplicateItem(uint256 cabinetId, address contractAddress, uint256 tokenIdOrAmount);
     error InsufficientAssetBalance(address token, address owner, uint256 required);
+    error InsufficientPayment(uint256 required, uint256 provided);
+    error NoActiveItems(uint256 cabinetId);
+    error InvalidTuuCoinAmount(uint256 amount, uint256 maxAllowed);
+    error TransferFailed(address to, uint256 amount);
 
     /**
      * @dev Constructor initializes the cabinet NFT contract
@@ -198,6 +245,7 @@ contract TuuKeepCabinet is
     constructor(
         address _accessControl,
         address _tuuCoin,
+        address _randomness,
         address _platformFeeRecipient
     )
         ERC721("TuuKeep Cabinet", "CABINET")
@@ -205,10 +253,12 @@ contract TuuKeepCabinet is
     {
         require(_accessControl != address(0), "Invalid access control address");
         require(_tuuCoin != address(0), "Invalid TuuCoin address");
+        require(_randomness != address(0), "Invalid randomness address");
         require(_platformFeeRecipient != address(0), "Invalid fee recipient");
 
         accessControl = TuuKeepAccessControl(_accessControl);
         tuuCoin = TuuCoin(_tuuCoin);
+        randomness = Randomness(_randomness);
         platformFeeRecipient = _platformFeeRecipient;
 
         // Grant roles to deployer
@@ -500,6 +550,99 @@ contract TuuKeepCabinet is
     }
 
     /**
+     * @dev Play gacha game with a cabinet
+     * @param cabinetId Cabinet token ID to play
+     * @param tuuCoinAmount Amount of TuuCoin to burn for odds improvement (optional)
+     */
+    function play(uint256 cabinetId, uint256 tuuCoinAmount)
+        external
+        payable
+        cabinetExists(cabinetId)
+        onlyActiveCabinet(cabinetId)
+        nonReentrant
+    {
+        CabinetConfig memory config = cabinetConfig[cabinetId];
+
+        // Validate payment
+        if (msg.value < config.playPrice) {
+            revert InsufficientPayment(config.playPrice, msg.value);
+        }
+
+        // Check if cabinet has active items
+        GachaItem[] memory activeItems = _getActiveItems(cabinetId);
+        if (activeItems.length == 0) {
+            revert NoActiveItems(cabinetId);
+        }
+
+        // Validate TuuCoin amount (max 20% of play price)
+        uint256 maxTuuCoinAmount = (config.playPrice * 20) / 100;
+        if (tuuCoinAmount > maxTuuCoinAmount) {
+            revert InvalidTuuCoinAmount(tuuCoinAmount, maxTuuCoinAmount);
+        }
+
+        // Burn TuuCoin if provided for odds improvement
+        if (tuuCoinAmount > 0) {
+            tuuCoin.burnFrom(msg.sender, tuuCoinAmount);
+        }
+
+        // Generate random number for item selection
+        uint256 requestId = ++_playRequestCounter;
+        uint256 randomNumber = randomness.generateRandomNumber(requestId);
+
+        // Calculate odds and select item
+        (bool wonPrize, uint256 selectedItemIndex) = _selectPrizeItem(
+            cabinetId,
+            activeItems,
+            randomNumber,
+            tuuCoinAmount,
+            config.playPrice
+        );
+
+        // Distribute revenue
+        _distributeRevenue(cabinetId, config, msg.value);
+
+        if (wonPrize) {
+            // Transfer prize to player
+            _transferPrizeToPlayer(cabinetId, selectedItemIndex, msg.sender);
+
+            emit PrizeWon(
+                cabinetId,
+                msg.sender,
+                selectedItemIndex,
+                cabinetItems[cabinetId][selectedItemIndex].assetType,
+                cabinetItems[cabinetId][selectedItemIndex].contractAddress,
+                cabinetItems[cabinetId][selectedItemIndex].tokenIdOrAmount,
+                cabinetItems[cabinetId][selectedItemIndex].rarity,
+                block.timestamp
+            );
+        } else {
+            // Mint TuuCoin as consolation prize
+            uint256 mintAmount = config.playPrice / 10; // 10% of play price as TuuCoin
+            tuuCoin.mint(msg.sender, mintAmount);
+
+            emit TuuCoinMinted(cabinetId, msg.sender, mintAmount, block.timestamp);
+        }
+
+        // Update cabinet statistics
+        updateCabinetStats(cabinetId, 1, msg.value);
+
+        emit GachaPlayed(
+            cabinetId,
+            msg.sender,
+            config.playPrice,
+            tuuCoinAmount,
+            wonPrize,
+            wonPrize ? selectedItemIndex : type(uint256).max,
+            block.timestamp
+        );
+
+        // Refund excess payment
+        if (msg.value > config.playPrice) {
+            _safeTransfer(msg.sender, msg.value - config.playPrice);
+        }
+    }
+
+    /**
      * @dev Update cabinet statistics (internal use)
      * @param tokenId Cabinet token ID
      * @param additionalPlays Number of new plays to add
@@ -702,6 +845,183 @@ contract TuuKeepCabinet is
     }
 
     /**
+     * @dev Get active items for gacha gameplay
+     * @param cabinetId Cabinet ID
+     * @return Array of active items
+     */
+    function _getActiveItems(uint256 cabinetId) internal view returns (GachaItem[] memory) {
+        GachaItem[] memory allItems = cabinetItems[cabinetId];
+        uint256 activeCount = 0;
+
+        // Count active items
+        for (uint256 i = 0; i < allItems.length; i++) {
+            if (allItems[i].isActive) {
+                activeCount++;
+            }
+        }
+
+        // Create array of active items
+        GachaItem[] memory activeItems = new GachaItem[](activeCount);
+        uint256 activeIndex = 0;
+
+        for (uint256 i = 0; i < allItems.length; i++) {
+            if (allItems[i].isActive) {
+                activeItems[activeIndex] = allItems[i];
+                activeIndex++;
+            }
+        }
+
+        return activeItems;
+    }
+
+    /**
+     * @dev Select prize item using rarity-based algorithm with TuuCoin odds modification
+     * @param cabinetId Cabinet ID
+     * @param activeItems Array of active items
+     * @param randomNumber Random number for selection
+     * @param tuuCoinAmount Amount of TuuCoin burned for odds improvement
+     * @param playPrice Play price for odds calculation
+     * @return wonPrize Whether player won a prize
+     * @return selectedItemIndex Index of selected item (if won)
+     */
+    function _selectPrizeItem(
+        uint256 cabinetId,
+        GachaItem[] memory activeItems,
+        uint256 randomNumber,
+        uint256 tuuCoinAmount,
+        uint256 playPrice
+    ) internal view returns (bool wonPrize, uint256 selectedItemIndex) {
+        if (activeItems.length == 0) {
+            return (false, 0);
+        }
+
+        // Calculate total weight based on rarity (higher rarity = lower weight = rarer)
+        uint256 totalWeight = 0;
+        uint256[] memory weights = new uint256[](activeItems.length);
+
+        for (uint256 i = 0; i < activeItems.length; i++) {
+            // Rarity 1 = common (weight 100), Rarity 5 = legendary (weight 1)
+            weights[i] = 101 - (activeItems[i].rarity * 20);
+            totalWeight += weights[i];
+        }
+
+        // Calculate base win probability (50% base chance)
+        uint256 baseWinProbability = 5000; // 50% in basis points
+
+        // Apply TuuCoin odds improvement (up to 20% improvement)
+        uint256 oddsImprovement = 0;
+        if (tuuCoinAmount > 0 && playPrice > 0) {
+            // Calculate improvement: (tuuCoinAmount / (playPrice * 0.2)) * 2000
+            // Max 2000 basis points (20%) improvement
+            oddsImprovement = (tuuCoinAmount * 2000 * 100) / (playPrice * 20);
+            if (oddsImprovement > 2000) {
+                oddsImprovement = 2000;
+            }
+        }
+
+        uint256 finalWinProbability = baseWinProbability + oddsImprovement;
+        if (finalWinProbability > 10000) {
+            finalWinProbability = 10000; // Cap at 100%
+        }
+
+        // Check if player wins any prize
+        uint256 winRoll = randomNumber % 10000;
+        if (winRoll >= finalWinProbability) {
+            return (false, 0); // No prize
+        }
+
+        // Select specific item based on weighted probability
+        uint256 itemRoll = randomNumber % totalWeight;
+        uint256 cumulativeWeight = 0;
+
+        for (uint256 i = 0; i < activeItems.length; i++) {
+            cumulativeWeight += weights[i];
+            if (itemRoll < cumulativeWeight) {
+                // Find the actual index in the cabinet's item array
+                for (uint256 j = 0; j < cabinetItems[cabinetId].length; j++) {
+                    if (cabinetItems[cabinetId][j].contractAddress == activeItems[i].contractAddress &&
+                        cabinetItems[cabinetId][j].tokenIdOrAmount == activeItems[i].tokenIdOrAmount &&
+                        cabinetItems[cabinetId][j].isActive) {
+                        return (true, j);
+                    }
+                }
+            }
+        }
+
+        // Fallback - should not reach here
+        return (false, 0);
+    }
+
+    /**
+     * @dev Distribute revenue between platform and cabinet owner
+     * @param cabinetId Cabinet ID
+     * @param config Cabinet configuration
+     * @param amount Total amount to distribute
+     */
+    function _distributeRevenue(
+        uint256 cabinetId,
+        CabinetConfig memory config,
+        uint256 amount
+    ) internal {
+        uint256 platformFee = (amount * config.platformFeeRate) / 10000;
+        uint256 cabinetOwnerRevenue = amount - platformFee;
+
+        // Add to cabinet owner's revenue
+        cabinetRevenue[cabinetId] += cabinetOwnerRevenue;
+
+        // Add to platform revenue
+        platformRevenue[address(0)] += platformFee; // ETH revenue
+
+        emit RevenueDistributed(
+            cabinetId,
+            ownerOf(cabinetId),
+            cabinetOwnerRevenue,
+            platformFee,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @dev Transfer prize to player and remove from cabinet
+     * @param cabinetId Cabinet ID
+     * @param itemIndex Index of item to transfer
+     * @param player Player address
+     */
+    function _transferPrizeToPlayer(
+        uint256 cabinetId,
+        uint256 itemIndex,
+        address player
+    ) internal {
+        require(itemIndex < cabinetItems[cabinetId].length, "Invalid item index");
+        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+
+        GachaItem storage item = cabinetItems[cabinetId][itemIndex];
+
+        // Transfer asset to player
+        _transferAssetFromContract(item, player);
+
+        // Remove item from cabinet
+        _removeItem(cabinetId, itemIndex);
+
+        // Update item count
+        itemCount[cabinetId] = cabinetItems[cabinetId].length;
+    }
+
+    /**
+     * @dev Safe ETH transfer with proper error handling
+     * @param to Recipient address
+     * @param amount Amount to transfer
+     */
+    function _safeTransfer(address to, uint256 amount) internal {
+        if (amount > 0) {
+            (bool success, ) = payable(to).call{value: amount}("");
+            if (!success) {
+                revert TransferFailed(to, amount);
+            }
+        }
+    }
+
+    /**
      * @dev Generate dynamic SVG for cabinet NFT using external library
      * @param tokenId Cabinet token ID
      * @return SVG string
@@ -850,6 +1170,61 @@ contract TuuKeepCabinet is
         } else {
             emit ItemDeactivated(cabinetId, itemIndex, block.timestamp);
         }
+    }
+
+    /**
+     * @dev Withdraw accumulated revenue (cabinet owner only)
+     * @param cabinetId Cabinet token ID
+     */
+    function withdrawCabinetRevenue(uint256 cabinetId)
+        external
+        onlyTokenOwner(cabinetId)
+        cabinetExists(cabinetId)
+        nonReentrant
+    {
+        uint256 revenue = cabinetRevenue[cabinetId];
+        require(revenue > 0, "No revenue to withdraw");
+
+        cabinetRevenue[cabinetId] = 0;
+        _safeTransfer(msg.sender, revenue);
+    }
+
+    /**
+     * @dev Withdraw platform revenue (platform admin only)
+     * @param amount Amount to withdraw
+     */
+    function withdrawPlatformRevenue(uint256 amount)
+        external
+        onlyRole(PLATFORM_ADMIN_ROLE)
+        nonReentrant
+    {
+        require(amount > 0, "Invalid amount");
+        require(platformRevenue[address(0)] >= amount, "Insufficient platform revenue");
+
+        platformRevenue[address(0)] -= amount;
+        _safeTransfer(msg.sender, amount);
+    }
+
+    /**
+     * @dev Get cabinet revenue balance
+     * @param cabinetId Cabinet token ID
+     * @return Revenue balance
+     */
+    function getCabinetRevenue(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256)
+    {
+        return cabinetRevenue[cabinetId];
+    }
+
+    /**
+     * @dev Get platform revenue balance
+     * @return Platform revenue balance
+     */
+    function getPlatformRevenue() external view returns (uint256) {
+        return platformRevenue[address(0)];
     }
 
     /**
