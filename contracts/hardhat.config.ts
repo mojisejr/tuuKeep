@@ -36,6 +36,10 @@ const config: HardhatUserConfig = {
       url: process.env.KUB_TESTNET_RPC_URL || "https://rpc-testnet.bitkubchain.io",
       accounts: process.env.KUB_TESTNET_PRIVATE_KEY ? [process.env.KUB_TESTNET_PRIVATE_KEY] : [],
       chainId: 25925,
+      gasPrice: "auto",
+      gas: "auto",
+      gasMultiplier: 1.2,
+      timeout: 60000,
     },
     kubMainnet: {
       type: "http",
@@ -43,7 +47,45 @@ const config: HardhatUserConfig = {
       url: process.env.KUB_MAINNET_RPC_URL || "https://rpc.bitkubchain.io",
       accounts: process.env.KUB_MAINNET_PRIVATE_KEY ? [process.env.KUB_MAINNET_PRIVATE_KEY] : [],
       chainId: 96,
+      gasPrice: "auto",
+      gas: "auto",
+      gasMultiplier: 1.1,
+      timeout: 120000,
     },
+  },
+  etherscan: {
+    apiKey: {
+      kubTestnet: process.env.KUBSCAN_API_KEY || "dummy-key",
+      kubMainnet: process.env.KUBSCAN_API_KEY || "dummy-key",
+    },
+    customChains: [
+      {
+        network: "kubTestnet",
+        chainId: 25925,
+        urls: {
+          apiURL: "https://testnet.kubscan.io/api",
+          browserURL: "https://testnet.kubscan.io",
+        },
+      },
+      {
+        network: "kubMainnet",
+        chainId: 96,
+        urls: {
+          apiURL: "https://kubscan.io/api",
+          browserURL: "https://kubscan.io",
+        },
+      },
+    ],
+  },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS === "true",
+    currency: "USD",
+    gasPrice: 20,
+    showTimeSpent: true,
+    showMethodSig: true,
+  },
+  mocha: {
+    timeout: 60000,
   },
 };
 
