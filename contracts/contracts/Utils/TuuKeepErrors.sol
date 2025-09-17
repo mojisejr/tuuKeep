@@ -37,4 +37,8 @@ library TuuKeepErrors {
     error InvalidIndex();
     error ContractPaused();
     error ReentrantCall();
+
+    // Marketplace specific errors
+    error InvalidFeeRate(uint256 rate);
+    error InvalidConfiguration(string configType, string reason);
 }
