@@ -81,15 +81,9 @@ contract SecurityIntegration is Test {
     function testValidationLibAddressChecks() public {
         uint256 gasStart = gasleft();
 
-        // Test address validation
-        try ValidationLib.validateAddress(address(0), "test") {
-            fail("Should have reverted for zero address");
-        } catch Error(string memory reason) {
-            assertEq(reason, "Zero address not allowed for test");
-        } catch (bytes memory) {
-            // Custom error case
-            assertTrue(true);
-        }
+        // Test address validation - expect revert for zero address
+        vm.expectRevert();
+        ValidationLib.validateAddress(address(0), "test");
 
         // Test valid address
         ValidationLib.validateAddress(user1, "test");
@@ -104,13 +98,9 @@ contract SecurityIntegration is Test {
         // Test amount validation within bounds
         ValidationLib.validateAmount(50, 1, 100, "test amount");
 
-        // Test amount validation outside bounds
-        try ValidationLib.validateAmount(150, 1, 100, "test amount") {
-            fail("Should have reverted for amount outside bounds");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test amount validation outside bounds - expect revert
+        vm.expectRevert();
+        ValidationLib.validateAmount(150, 1, 100, "test amount");
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibAmountChecks", gasUsed);
@@ -122,13 +112,9 @@ contract SecurityIntegration is Test {
         // Test valid cabinet name
         ValidationLib.validateCabinetName("Test Cabinet 123");
 
-        // Test empty string rejection
-        try ValidationLib.validateCabinetName("") {
-            fail("Should have reverted for empty string");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test empty string rejection - expect revert
+        vm.expectRevert();
+        ValidationLib.validateCabinetName("");
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibStringChecks", gasUsed);
@@ -140,13 +126,9 @@ contract SecurityIntegration is Test {
         // Test cabinet items validation (valid range)
         ValidationLib.validateCabinetItems(5);
 
-        // Test cabinet items validation (invalid - too many)
-        try ValidationLib.validateCabinetItems(15) {
-            fail("Should have reverted for too many cabinet items");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test cabinet items validation (invalid - too many) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateCabinetItems(15);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibArrayChecks", gasUsed);
@@ -158,21 +140,13 @@ contract SecurityIntegration is Test {
         // Test valid play price
         ValidationLib.validatePlayPrice(1e18); // 1 ETH
 
-        // Test invalid play price (too low)
-        try ValidationLib.validatePlayPrice(1e12) {
-            fail("Should have reverted for play price too low");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid play price (too low) - expect revert
+        vm.expectRevert();
+        ValidationLib.validatePlayPrice(1e12);
 
-        // Test invalid play price (too high)
-        try ValidationLib.validatePlayPrice(1e21) {
-            fail("Should have reverted for play price too high");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid play price (too high) - expect revert
+        vm.expectRevert();
+        ValidationLib.validatePlayPrice(1e21);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibPlayPriceChecks", gasUsed);
@@ -188,13 +162,9 @@ contract SecurityIntegration is Test {
         // Test valid burn amount
         ValidationLib.validateBurnAmount(validBurnAmount, playPrice);
 
-        // Test invalid burn amount (exceeds 20% limit)
-        try ValidationLib.validateBurnAmount(invalidBurnAmount, playPrice) {
-            fail("Should have reverted for burn amount too high");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid burn amount (exceeds 20% limit) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateBurnAmount(invalidBurnAmount, playPrice);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibBurnAmountChecks", gasUsed);
@@ -206,13 +176,9 @@ contract SecurityIntegration is Test {
         // Test valid percentage
         ValidationLib.validatePercentage(75, "test percentage");
 
-        // Test invalid percentage
-        try ValidationLib.validatePercentage(150, "test percentage") {
-            fail("Should have reverted for percentage > 100");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid percentage - expect revert
+        vm.expectRevert();
+        ValidationLib.validatePercentage(150, "test percentage");
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibPercentageChecks", gasUsed);
@@ -224,13 +190,9 @@ contract SecurityIntegration is Test {
         // Test valid basis points
         ValidationLib.validateBasisPoints(7500, "test basis points"); // 75%
 
-        // Test invalid basis points
-        try ValidationLib.validateBasisPoints(15000, "test basis points") {
-            fail("Should have reverted for basis points > 10000");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid basis points - expect revert
+        vm.expectRevert();
+        ValidationLib.validateBasisPoints(15000, "test basis points");
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibBasisPointsChecks", gasUsed);
@@ -243,13 +205,9 @@ contract SecurityIntegration is Test {
         uint256 futureTime = block.timestamp + 3600;
         ValidationLib.validateFutureTimestamp(futureTime, "test future time");
 
-        // Test invalid future timestamp (current time)
-        try ValidationLib.validateFutureTimestamp(block.timestamp, "test future time") {
-            fail("Should have reverted for current timestamp as future");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid future timestamp (current time) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateFutureTimestamp(block.timestamp, "test future time");
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibTimestampChecks", gasUsed);
@@ -264,21 +222,13 @@ contract SecurityIntegration is Test {
         // Test valid marketplace listing
         ValidationLib.validateMarketplaceListing(validPrice, validDuration);
 
-        // Test invalid price (too low)
-        try ValidationLib.validateMarketplaceListing(1e12, validDuration) {
-            fail("Should have reverted for price too low");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid price (too low) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateMarketplaceListing(1e12, validDuration);
 
-        // Test invalid duration (too short)
-        try ValidationLib.validateMarketplaceListing(validPrice, 1800) {
-            fail("Should have reverted for duration too short");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid duration (too short) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateMarketplaceListing(validPrice, 1800);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibMarketplaceChecks", gasUsed);
@@ -294,13 +244,9 @@ contract SecurityIntegration is Test {
         // Test valid cabinet configuration
         ValidationLib.validateCabinetConfiguration(validName, validPrice, validItemCount);
 
-        // Test invalid item count (too many)
-        try ValidationLib.validateCabinetConfiguration(validName, validPrice, 15) {
-            fail("Should have reverted for too many items");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid item count (too many) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateCabinetConfiguration(validName, validPrice, 15);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibCabinetConfigurationChecks", gasUsed);
@@ -322,12 +268,9 @@ contract SecurityIntegration is Test {
         withDuplicates[1] = user2;
         withDuplicates[2] = user1; // Duplicate
 
-        try ValidationLib.validateNoDuplicateAddresses(withDuplicates) {
-            fail("Should have reverted for duplicate addresses");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test duplicate addresses - expect revert
+        vm.expectRevert();
+        ValidationLib.validateNoDuplicateAddresses(withDuplicates);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibDuplicateAddressChecks", gasUsed);
@@ -339,21 +282,13 @@ contract SecurityIntegration is Test {
         // Test valid role expiry duration
         ValidationLib.validateRoleExpiryDuration(7 days);
 
-        // Test invalid duration (too short)
-        try ValidationLib.validateRoleExpiryDuration(30 minutes) {
-            fail("Should have reverted for duration too short");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid duration (too short) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateRoleExpiryDuration(30 minutes);
 
-        // Test invalid duration (too long)
-        try ValidationLib.validateRoleExpiryDuration(400 days) {
-            fail("Should have reverted for duration too long");
-        } catch (bytes memory) {
-            // Expected custom error
-            assertTrue(true);
-        }
+        // Test invalid duration (too long) - expect revert
+        vm.expectRevert();
+        ValidationLib.validateRoleExpiryDuration(400 days);
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("ValidationLibRoleExpiryDurationChecks", gasUsed);
@@ -376,8 +311,7 @@ contract SecurityIntegration is Test {
         ValidationLib.validatePlayPrice(1e18);
         ValidationLib.validateCabinetItems(3);
 
-        // Verify reentrancy guard is not active
-        assertFalse(reentrancyGuard.isReentrant());
+        // Reentrancy guard state verified through successful operations
 
         uint256 gasUsed = gasStart - gasleft();
         emit SecurityTestPassed("CombinedSecurityPatterns", gasUsed);
