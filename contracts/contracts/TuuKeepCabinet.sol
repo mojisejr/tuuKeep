@@ -14,33 +14,9 @@ import "./Utils/Security/TuuKeepReentrancyGuard.sol";
 import "./Utils/Security/ValidationLib.sol";
 import "./Utils/SVGGenerator.sol";
 import "./Utils/Randomness.sol";
+import "./Utils/TuuKeepErrors.sol";
 import "./TuuCoin.sol";
 
-/**
- * @title TuuKeepCabinet
- * @dev NFT contract for gachapon cabinet ownership in the TuuKeep platform
- *
- * Features:
- * - ERC-721 NFT representing cabinet ownership
- * - On-chain metadata with dynamic SVG generation
- * - Cabinet configuration and management
- * - Integration with TuuCoin ecosystem
- * - Role-based access control and security
- * - Comprehensive asset management system for gacha items
- *
- * Cabinet Economy:
- * - Cabinet owners can configure play prices and settings
- * - Cabinets generate revenue from player interactions
- * - Dynamic metadata reflects cabinet status and statistics
- * - SVG artwork generated on-chain for each cabinet
- *
- * Asset Management:
- * - Secure deposit/withdrawal of ERC-721 NFTs and ERC-20 tokens
- * - Maximum 10 items per cabinet limitation
- * - Item rarity system (1-5 levels) for gacha mechanics
- * - Active/inactive status management for individual items
- * - Comprehensive validation and security controls
- */
 contract TuuKeepCabinet is
     ERC721,
     ERC721Enumerable,
@@ -118,69 +94,15 @@ contract TuuKeepCabinet is
     address public platformFeeRecipient;
 
     // Events
-    event CabinetMinted(
-        uint256 indexed tokenId,
-        address indexed owner,
-        string name,
-        uint256 timestamp
-    );
+    event CabinetMinted(uint256 indexed tokenId, address indexed owner, string name);
+    event CabinetConfigured(uint256 indexed tokenId, uint256 playPrice);
+    event CabinetStatusChanged(uint256 indexed tokenId, bool isActive);
+    event PriceUpdated(uint256 indexed tokenId, uint256 oldPrice, uint256 newPrice);
+    event RevenueWithdrawn(uint256 indexed tokenId, address indexed owner, uint256 amount);
 
-    event CabinetConfigured(
-        uint256 indexed tokenId,
-        CabinetConfig config,
-        uint256 timestamp
-    );
-
-    event CabinetStatusChanged(
-        uint256 indexed tokenId,
-        bool isActive,
-        uint256 timestamp
-    );
-
-    event CabinetStatsUpdated(
-        uint256 indexed tokenId,
-        uint256 totalPlays,
-        uint256 totalRevenue,
-        uint256 timestamp
-    );
-
-    event CabinetNameChanged(
-        uint256 indexed tokenId,
-        string oldName,
-        string newName,
-        uint256 timestamp
-    );
-
-    event ItemDeposited(
-        uint256 indexed cabinetId,
-        uint256 indexed itemIndex,
-        AssetType assetType,
-        address contractAddress,
-        uint256 tokenIdOrAmount,
-        uint256 rarity,
-        uint256 timestamp
-    );
-
-    event ItemWithdrawn(
-        uint256 indexed cabinetId,
-        uint256 indexed itemIndex,
-        AssetType assetType,
-        address contractAddress,
-        uint256 tokenIdOrAmount,
-        uint256 timestamp
-    );
-
-    event ItemActivated(
-        uint256 indexed cabinetId,
-        uint256 indexed itemIndex,
-        uint256 timestamp
-    );
-
-    event ItemDeactivated(
-        uint256 indexed cabinetId,
-        uint256 indexed itemIndex,
-        uint256 timestamp
-    );
+    event ItemDeposited(uint256 indexed cabinetId, uint256 indexed itemIndex, AssetType assetType, address contractAddress, uint256 tokenIdOrAmount, uint256 rarity);
+    event ItemWithdrawn(uint256 indexed cabinetId, uint256 indexed itemIndex, AssetType assetType);
+    event ItemStatusChanged(uint256 indexed cabinetId, uint256 indexed itemIndex, bool isActive);
 
     event GachaPlayed(
         uint256 indexed cabinetId,
@@ -236,12 +158,6 @@ contract TuuKeepCabinet is
     error InvalidTuuCoinAmount(uint256 amount, uint256 maxAllowed);
     error TransferFailed(address to, uint256 amount);
 
-    /**
-     * @dev Constructor initializes the cabinet NFT contract
-     * @param _accessControl Address of the TuuKeep access control contract
-     * @param _tuuCoin Address of the TuuCoin token contract
-     * @param _platformFeeRecipient Address to receive platform fees
-     */
     constructor(
         address _accessControl,
         address _tuuCoin,
@@ -251,10 +167,7 @@ contract TuuKeepCabinet is
         ERC721("TuuKeep Cabinet", "CABINET")
         TuuKeepReentrancyGuard()
     {
-        require(_accessControl != address(0), "Invalid access control address");
-        require(_tuuCoin != address(0), "Invalid TuuCoin address");
-        require(_randomness != address(0), "Invalid randomness address");
-        require(_platformFeeRecipient != address(0), "Invalid fee recipient");
+        if (_accessControl == address(0) || _tuuCoin == address(0) || _randomness == address(0) || _platformFeeRecipient == address(0)) revert TuuKeepErrors.InvalidAddress();
 
         accessControl = TuuKeepAccessControl(_accessControl);
         tuuCoin = TuuCoin(_tuuCoin);
@@ -290,12 +203,6 @@ contract TuuKeepCabinet is
         _;
     }
 
-    /**
-     * @dev Mint a new cabinet NFT
-     * @param to Address to receive the cabinet NFT
-     * @param cabinetName Name for the cabinet
-     * @return tokenId The ID of the newly minted cabinet
-     */
     function mintCabinet(
         address to,
         string memory cabinetName
@@ -340,16 +247,11 @@ contract TuuKeepCabinet is
         // Register cabinet with TuuCoin contract
         _registerCabinetWithTuuCoin(tokenId);
 
-        emit CabinetMinted(tokenId, to, cabinetName, block.timestamp);
+        emit CabinetMinted(tokenId, to, cabinetName);
 
         return tokenId;
     }
 
-    /**
-     * @dev Set cabinet name (only owner)
-     * @param tokenId Cabinet token ID
-     * @param newName New name for the cabinet
-     */
     function setCabinetName(
         uint256 tokenId,
         string memory newName
@@ -361,17 +263,11 @@ contract TuuKeepCabinet is
     {
         ValidationLib.validateNonEmptyString(newName, "cabinet name");
 
-        string memory oldName = cabinetMetadata[tokenId].name;
         cabinetMetadata[tokenId].name = newName;
 
-        emit CabinetNameChanged(tokenId, oldName, newName, block.timestamp);
+        emit CabinetConfigured(tokenId, cabinetConfig[tokenId].playPrice);
     }
 
-    /**
-     * @dev Configure cabinet settings (only owner)
-     * @param tokenId Cabinet token ID
-     * @param config New configuration for the cabinet
-     */
     function setCabinetConfig(
         uint256 tokenId,
         CabinetConfig memory config
@@ -391,13 +287,9 @@ contract TuuKeepCabinet is
 
         cabinetConfig[tokenId] = config;
 
-        emit CabinetConfigured(tokenId, config, block.timestamp);
+        emit CabinetConfigured(tokenId, config.playPrice);
     }
 
-    /**
-     * @dev Activate cabinet for gameplay
-     * @param tokenId Cabinet token ID
-     */
     function activateCabinet(uint256 tokenId)
         external
         onlyTokenOwner(tokenId)
@@ -409,13 +301,9 @@ contract TuuKeepCabinet is
         // Update status in TuuCoin contract
         tuuCoin.updateCabinetStatus(tokenId, true);
 
-        emit CabinetStatusChanged(tokenId, true, block.timestamp);
+        emit CabinetStatusChanged(tokenId, true);
     }
 
-    /**
-     * @dev Deactivate cabinet (pause gameplay)
-     * @param tokenId Cabinet token ID
-     */
     function deactivateCabinet(uint256 tokenId)
         external
         onlyTokenOwner(tokenId)
@@ -427,14 +315,44 @@ contract TuuKeepCabinet is
         // Update status in TuuCoin contract
         tuuCoin.updateCabinetStatus(tokenId, false);
 
-        emit CabinetStatusChanged(tokenId, false, block.timestamp);
+        emit CabinetStatusChanged(tokenId, false);
     }
 
-    /**
-     * @dev Deposit items into cabinet for gacha gameplay
-     * @param cabinetId Cabinet token ID
-     * @param items Array of gacha items to deposit
-     */
+    function setPrice(uint256 tokenId, uint256 newPrice)
+        external
+        onlyTokenOwner(tokenId)
+        cabinetExists(tokenId)
+        nonReentrant
+    {
+        ValidationLib.validatePlayPrice(newPrice);
+
+        uint256 oldPrice = cabinetConfig[tokenId].playPrice;
+        cabinetConfig[tokenId].playPrice = newPrice;
+
+        emit PriceUpdated(tokenId, oldPrice, newPrice);
+    }
+
+    function setMaintenanceMode(uint256 tokenId, bool inMaintenance)
+        external
+        onlyTokenOwner(tokenId)
+        cabinetExists(tokenId)
+        nonReentrant
+    {
+        bool oldStatus = cabinetMetadata[tokenId].isActive;
+
+        // Maintenance mode overrides active status
+        if (inMaintenance) {
+            cabinetMetadata[tokenId].isActive = false;
+        }
+
+        emit CabinetStatusChanged(tokenId, !inMaintenance);
+
+        if (oldStatus != cabinetMetadata[tokenId].isActive) {
+            tuuCoin.updateCabinetStatus(tokenId, cabinetMetadata[tokenId].isActive);
+            emit CabinetStatusChanged(tokenId, cabinetMetadata[tokenId].isActive);
+        }
+    }
+
     function depositItems(
         uint256 cabinetId,
         GachaItem[] calldata items
@@ -482,26 +400,13 @@ contract TuuKeepCabinet is
             cabinetItems[cabinetId].push(newItem);
             itemExists[cabinetId][itemIndex] = true;
 
-            emit ItemDeposited(
-                cabinetId,
-                itemIndex,
-                item.assetType,
-                item.contractAddress,
-                item.tokenIdOrAmount,
-                item.rarity,
-                block.timestamp
-            );
+            emit ItemDeposited(cabinetId, itemIndex, item.assetType, item.contractAddress, item.tokenIdOrAmount, item.rarity);
         }
 
         // Update item count
         itemCount[cabinetId] = newCount;
     }
 
-    /**
-     * @dev Withdraw items from cabinet (cabinet owner only)
-     * @param cabinetId Cabinet token ID
-     * @param itemIndices Array of item indices to withdraw
-     */
     function withdrawItems(
         uint256 cabinetId,
         uint256[] calldata itemIndices
@@ -532,14 +437,7 @@ contract TuuKeepCabinet is
             // Transfer asset back to owner
             _transferAssetFromContract(item, cabinetOwner);
 
-            emit ItemWithdrawn(
-                cabinetId,
-                itemIndex,
-                item.assetType,
-                item.contractAddress,
-                item.tokenIdOrAmount,
-                block.timestamp
-            );
+            emit ItemWithdrawn(cabinetId, itemIndex, item.assetType);
 
             // Remove item from storage
             _removeItem(cabinetId, itemIndex);
@@ -549,11 +447,6 @@ contract TuuKeepCabinet is
         itemCount[cabinetId] = cabinetItems[cabinetId].length;
     }
 
-    /**
-     * @dev Play gacha game with a cabinet
-     * @param cabinetId Cabinet token ID to play
-     * @param tuuCoinAmount Amount of TuuCoin to burn for odds improvement (optional)
-     */
     function play(uint256 cabinetId, uint256 tuuCoinAmount)
         external
         payable
@@ -620,7 +513,7 @@ contract TuuKeepCabinet is
             uint256 mintAmount = config.playPrice / 10; // 10% of play price as TuuCoin
             tuuCoin.mint(msg.sender, mintAmount);
 
-            emit TuuCoinMinted(cabinetId, msg.sender, mintAmount, block.timestamp);
+            // TuuCoin minting handled by TuuCoin contract
         }
 
         // Update cabinet statistics
@@ -642,12 +535,6 @@ contract TuuKeepCabinet is
         }
     }
 
-    /**
-     * @dev Update cabinet statistics (internal use)
-     * @param tokenId Cabinet token ID
-     * @param additionalPlays Number of new plays to add
-     * @param additionalRevenue Additional revenue to add (in wei)
-     */
     function updateCabinetStats(
         uint256 tokenId,
         uint256 additionalPlays,
@@ -661,19 +548,8 @@ contract TuuKeepCabinet is
         metadata.totalRevenue += additionalRevenue;
         metadata.lastPlayTime = block.timestamp;
 
-        emit CabinetStatsUpdated(
-            tokenId,
-            metadata.totalPlays,
-            metadata.totalRevenue,
-            block.timestamp
-        );
     }
 
-    /**
-     * @dev Generate token URI with on-chain metadata and SVG
-     * @param tokenId Cabinet token ID
-     * @return JSON metadata string
-     */
     function tokenURI(uint256 tokenId)
         public
         view
@@ -708,11 +584,6 @@ contract TuuKeepCabinet is
         ));
     }
 
-    /**
-     * @dev Validate gacha item data
-     * @param item The gacha item to validate
-     * @param cabinetId Cabinet ID for context
-     */
     function _validateGachaItem(GachaItem calldata item, uint256 cabinetId) internal view {
         // Validate contract address
         ValidationLib.validateContract(item.contractAddress, "asset contract");
@@ -755,12 +626,6 @@ contract TuuKeepCabinet is
         _validateNoDuplicateItem(cabinetId, item.contractAddress, item.tokenIdOrAmount);
     }
 
-    /**
-     * @dev Check for duplicate items in cabinet
-     * @param cabinetId Cabinet ID
-     * @param contractAddress Asset contract address
-     * @param tokenIdOrAmount Token ID or amount
-     */
     function _validateNoDuplicateItem(
         uint256 cabinetId,
         address contractAddress,
@@ -775,11 +640,6 @@ contract TuuKeepCabinet is
         }
     }
 
-    /**
-     * @dev Transfer asset from user to contract for escrow
-     * @param item The gacha item to transfer
-     * @param from Address to transfer from
-     */
     function _transferAssetToContract(GachaItem calldata item, address from) internal {
         if (item.assetType == AssetType.ERC721) {
             IERC721(item.contractAddress).safeTransferFrom(
@@ -793,15 +653,10 @@ contract TuuKeepCabinet is
                 address(this),
                 item.tokenIdOrAmount
             );
-            require(success, "ERC20 transfer failed");
+            if (!success) revert TuuKeepErrors.TransferFailed();
         }
     }
 
-    /**
-     * @dev Transfer asset from contract back to user
-     * @param item The gacha item to transfer
-     * @param to Address to transfer to
-     */
     function _transferAssetFromContract(GachaItem storage item, address to) internal {
         if (item.assetType == AssetType.ERC721) {
             IERC721(item.contractAddress).safeTransferFrom(
@@ -814,15 +669,10 @@ contract TuuKeepCabinet is
                 to,
                 item.tokenIdOrAmount
             );
-            require(success, "ERC20 transfer failed");
+            if (!success) revert TuuKeepErrors.TransferFailed();
         }
     }
 
-    /**
-     * @dev Remove item from cabinet storage
-     * @param cabinetId Cabinet ID
-     * @param itemIndex Index of item to remove
-     */
     function _removeItem(uint256 cabinetId, uint256 itemIndex) internal {
         GachaItem[] storage items = cabinetItems[cabinetId];
         uint256 lastIndex = items.length - 1;
@@ -844,11 +694,6 @@ contract TuuKeepCabinet is
         }
     }
 
-    /**
-     * @dev Get active items for gacha gameplay
-     * @param cabinetId Cabinet ID
-     * @return Array of active items
-     */
     function _getActiveItems(uint256 cabinetId) internal view returns (GachaItem[] memory) {
         GachaItem[] memory allItems = cabinetItems[cabinetId];
         uint256 activeCount = 0;
@@ -874,16 +719,6 @@ contract TuuKeepCabinet is
         return activeItems;
     }
 
-    /**
-     * @dev Select prize item using rarity-based algorithm with TuuCoin odds modification
-     * @param cabinetId Cabinet ID
-     * @param activeItems Array of active items
-     * @param randomNumber Random number for selection
-     * @param tuuCoinAmount Amount of TuuCoin burned for odds improvement
-     * @param playPrice Play price for odds calculation
-     * @return wonPrize Whether player won a prize
-     * @return selectedItemIndex Index of selected item (if won)
-     */
     function _selectPrizeItem(
         uint256 cabinetId,
         GachaItem[] memory activeItems,
@@ -952,12 +787,6 @@ contract TuuKeepCabinet is
         return (false, 0);
     }
 
-    /**
-     * @dev Distribute revenue between platform and cabinet owner
-     * @param cabinetId Cabinet ID
-     * @param config Cabinet configuration
-     * @param amount Total amount to distribute
-     */
     function _distributeRevenue(
         uint256 cabinetId,
         CabinetConfig memory config,
@@ -981,19 +810,13 @@ contract TuuKeepCabinet is
         );
     }
 
-    /**
-     * @dev Transfer prize to player and remove from cabinet
-     * @param cabinetId Cabinet ID
-     * @param itemIndex Index of item to transfer
-     * @param player Player address
-     */
     function _transferPrizeToPlayer(
         uint256 cabinetId,
         uint256 itemIndex,
         address player
     ) internal {
-        require(itemIndex < cabinetItems[cabinetId].length, "Invalid item index");
-        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+        if (itemIndex >= cabinetItems[cabinetId].length) revert TuuKeepErrors.InvalidIndex();
+        if (!itemExists[cabinetId][itemIndex]) revert TuuKeepErrors.AssetNotFound();
 
         GachaItem storage item = cabinetItems[cabinetId][itemIndex];
 
@@ -1007,11 +830,6 @@ contract TuuKeepCabinet is
         itemCount[cabinetId] = cabinetItems[cabinetId].length;
     }
 
-    /**
-     * @dev Safe ETH transfer with proper error handling
-     * @param to Recipient address
-     * @param amount Amount to transfer
-     */
     function _safeTransfer(address to, uint256 amount) internal {
         if (amount > 0) {
             (bool success, ) = payable(to).call{value: amount}("");
@@ -1021,11 +839,6 @@ contract TuuKeepCabinet is
         }
     }
 
-    /**
-     * @dev Generate dynamic SVG for cabinet NFT using external library
-     * @param tokenId Cabinet token ID
-     * @return SVG string
-     */
     function _generateSVG(uint256 tokenId)
         internal
         view
@@ -1040,10 +853,6 @@ contract TuuKeepCabinet is
         );
     }
 
-    /**
-     * @dev Register cabinet with TuuCoin contract
-     * @param tokenId Cabinet token ID
-     */
     function _registerCabinetWithTuuCoin(uint256 tokenId) internal {
         try tuuCoin.registerCabinet(tokenId, ownerOf(tokenId)) {
             // Cabinet registration successful
@@ -1053,12 +862,6 @@ contract TuuKeepCabinet is
         }
     }
 
-    /**
-     * @dev Get cabinet information
-     * @param tokenId Cabinet token ID
-     * @return metadata Cabinet metadata
-     * @return config Cabinet configuration
-     */
     function getCabinetInfo(uint256 tokenId)
         external
         view
@@ -1068,11 +871,6 @@ contract TuuKeepCabinet is
         return (cabinetMetadata[tokenId], cabinetConfig[tokenId]);
     }
 
-    /**
-     * @dev Get all items in a cabinet
-     * @param cabinetId Cabinet token ID
-     * @return Array of gacha items
-     */
     function getCabinetItems(uint256 cabinetId)
         external
         view
@@ -1082,12 +880,6 @@ contract TuuKeepCabinet is
         return cabinetItems[cabinetId];
     }
 
-    /**
-     * @dev Get specific item from cabinet
-     * @param cabinetId Cabinet token ID
-     * @param itemIndex Index of the item
-     * @return The gacha item
-     */
     function getCabinetItem(uint256 cabinetId, uint256 itemIndex)
         external
         view
@@ -1095,15 +887,10 @@ contract TuuKeepCabinet is
         returns (GachaItem memory)
     {
         require(itemIndex < cabinetItems[cabinetId].length, "Item index out of bounds");
-        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+        if (!itemExists[cabinetId][itemIndex]) revert TuuKeepErrors.AssetNotFound();
         return cabinetItems[cabinetId][itemIndex];
     }
 
-    /**
-     * @dev Get number of items in cabinet
-     * @param cabinetId Cabinet token ID
-     * @return Number of items
-     */
     function getCabinetItemCount(uint256 cabinetId)
         external
         view
@@ -1113,11 +900,6 @@ contract TuuKeepCabinet is
         return itemCount[cabinetId];
     }
 
-    /**
-     * @dev Get active items in cabinet (available for gacha play)
-     * @param cabinetId Cabinet token ID
-     * @return Array of active gacha items
-     */
     function getActiveCabinetItems(uint256 cabinetId)
         external
         view
@@ -1148,11 +930,6 @@ contract TuuKeepCabinet is
         return activeItems;
     }
 
-    /**
-     * @dev Toggle item active status (cabinet owner only)
-     * @param cabinetId Cabinet token ID
-     * @param itemIndex Index of item to toggle
-     */
     function toggleItemStatus(uint256 cabinetId, uint256 itemIndex)
         external
         onlyTokenOwner(cabinetId)
@@ -1160,22 +937,18 @@ contract TuuKeepCabinet is
         nonReentrant
     {
         require(itemIndex < cabinetItems[cabinetId].length, "Item index out of bounds");
-        require(itemExists[cabinetId][itemIndex], "Item does not exist");
+        if (!itemExists[cabinetId][itemIndex]) revert TuuKeepErrors.AssetNotFound();
 
         GachaItem storage item = cabinetItems[cabinetId][itemIndex];
         item.isActive = !item.isActive;
 
         if (item.isActive) {
-            emit ItemActivated(cabinetId, itemIndex, block.timestamp);
+            emit ItemStatusChanged(cabinetId, itemIndex, true);
         } else {
-            emit ItemDeactivated(cabinetId, itemIndex, block.timestamp);
+            emit ItemStatusChanged(cabinetId, itemIndex, false);
         }
     }
 
-    /**
-     * @dev Withdraw accumulated revenue (cabinet owner only)
-     * @param cabinetId Cabinet token ID
-     */
     function withdrawCabinetRevenue(uint256 cabinetId)
         external
         onlyTokenOwner(cabinetId)
@@ -1183,33 +956,24 @@ contract TuuKeepCabinet is
         nonReentrant
     {
         uint256 revenue = cabinetRevenue[cabinetId];
-        require(revenue > 0, "No revenue to withdraw");
+        if (revenue == 0) revert TuuKeepErrors.InvalidAmount();
 
         cabinetRevenue[cabinetId] = 0;
         _safeTransfer(msg.sender, revenue);
     }
 
-    /**
-     * @dev Withdraw platform revenue (platform admin only)
-     * @param amount Amount to withdraw
-     */
     function withdrawPlatformRevenue(uint256 amount)
         external
         onlyRole(PLATFORM_ADMIN_ROLE)
         nonReentrant
     {
-        require(amount > 0, "Invalid amount");
-        require(platformRevenue[address(0)] >= amount, "Insufficient platform revenue");
+        if (amount == 0) revert TuuKeepErrors.InvalidAmount();
+        if (platformRevenue[address(0)] < amount) revert TuuKeepErrors.InsufficientPayment();
 
         platformRevenue[address(0)] -= amount;
         _safeTransfer(msg.sender, amount);
     }
 
-    /**
-     * @dev Get cabinet revenue balance
-     * @param cabinetId Cabinet token ID
-     * @return Revenue balance
-     */
     function getCabinetRevenue(uint256 cabinetId)
         external
         view
@@ -1219,45 +983,94 @@ contract TuuKeepCabinet is
         return cabinetRevenue[cabinetId];
     }
 
-    /**
-     * @dev Get platform revenue balance
-     * @return Platform revenue balance
-     */
     function getPlatformRevenue() external view returns (uint256) {
         return platformRevenue[address(0)];
     }
 
-    /**
-     * @dev Get total number of cabinets minted
-     * @return Total cabinet count
-     */
+    function getCabinetAnalytics(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256 totalRevenue, uint256 totalPlays, uint256 averageRevenue)
+    {
+        CabinetMetadata memory metadata = cabinetMetadata[cabinetId];
+        totalRevenue = metadata.totalRevenue;
+        totalPlays = metadata.totalPlays;
+
+        if (totalPlays > 0) {
+            averageRevenue = totalRevenue / totalPlays;
+        } else {
+            averageRevenue = 0;
+        }
+    }
+
+    function batchWithdrawRevenue(uint256[] calldata cabinetIds)
+        external
+        nonReentrant
+    {
+        if (cabinetIds.length == 0) revert TuuKeepErrors.InvalidAmount();
+        if (cabinetIds.length > 10) revert TuuKeepErrors.InvalidAmount(); // Gas limit protection
+
+        uint256 totalWithdrawal = 0;
+
+        for (uint256 i = 0; i < cabinetIds.length; i++) {
+            uint256 cabinetId = cabinetIds[i];
+
+            // Verify ownership
+            require(ownerOf(cabinetId) == msg.sender, "Not cabinet owner");
+
+            uint256 revenue = cabinetRevenue[cabinetId];
+            if (revenue > 0) {
+                cabinetRevenue[cabinetId] = 0;
+                totalWithdrawal += revenue;
+            }
+        }
+
+        if (totalWithdrawal == 0) revert TuuKeepErrors.InvalidAmount();
+        _safeTransfer(msg.sender, totalWithdrawal);
+    }
+
+    function getRevenueForecast(uint256 cabinetId, uint256 daysToForecast)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256 estimatedRevenue)
+    {
+        if (daysToForecast == 0 || daysToForecast > 365) revert TuuKeepErrors.InvalidAmount();
+
+        CabinetMetadata memory metadata = cabinetMetadata[cabinetId];
+
+        if (metadata.totalPlays == 0) {
+            return 0;
+        }
+
+        // Simple forecast based on average revenue per play
+        uint256 averageRevenue = metadata.totalRevenue / metadata.totalPlays;
+
+        // Assume consistent play rate (simplified forecasting)
+        // In a real implementation, this could use more sophisticated time-series analysis
+        uint256 estimatedPlaysPerDay = metadata.totalPlays / 30; // Assume 30-day history
+
+        estimatedRevenue = averageRevenue * estimatedPlaysPerDay * daysToForecast;
+    }
+
     function totalCabinets() external view returns (uint256) {
         return _tokenIdCounter;
     }
 
-    /**
-     * @dev Pause contract (emergency use only)
-     */
     function pause() external onlyRole(EMERGENCY_RESPONDER_ROLE) {
         _pause();
     }
 
-    /**
-     * @dev Unpause contract
-     */
     function unpause() external onlyRole(EMERGENCY_RESPONDER_ROLE) {
         _unpause();
     }
 
-    /**
-     * @dev Update platform fee recipient
-     * @param newRecipient New fee recipient address
-     */
     function updatePlatformFeeRecipient(address newRecipient)
         external
         onlyRole(PLATFORM_ADMIN_ROLE)
     {
-        require(newRecipient != address(0), "Invalid address");
+        if (newRecipient == address(0)) revert TuuKeepErrors.InvalidAddress();
         platformFeeRecipient = newRecipient;
     }
 
