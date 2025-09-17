@@ -151,6 +151,26 @@ contract TuuKeepCabinet is
         uint256 timestamp
     );
 
+    event CabinetPriceChanged(
+        uint256 indexed tokenId,
+        uint256 oldPrice,
+        uint256 newPrice,
+        uint256 timestamp
+    );
+
+    event CabinetMaintenanceChanged(
+        uint256 indexed tokenId,
+        bool inMaintenance,
+        uint256 timestamp
+    );
+
+    event RevenueAnalyticsUpdated(
+        uint256 indexed tokenId,
+        uint256 totalRevenue,
+        uint256 averagePlay,
+        uint256 timestamp
+    );
+
     event ItemDeposited(
         uint256 indexed cabinetId,
         uint256 indexed itemIndex,
@@ -428,6 +448,51 @@ contract TuuKeepCabinet is
         tuuCoin.updateCabinetStatus(tokenId, false);
 
         emit CabinetStatusChanged(tokenId, false, block.timestamp);
+    }
+
+    /**
+     * @dev Set cabinet play price (enhanced Task 3.4 feature)
+     * @param tokenId Cabinet token ID
+     * @param newPrice New play price in wei
+     */
+    function setPrice(uint256 tokenId, uint256 newPrice)
+        external
+        onlyTokenOwner(tokenId)
+        cabinetExists(tokenId)
+        nonReentrant
+    {
+        ValidationLib.validatePlayPrice(newPrice);
+
+        uint256 oldPrice = cabinetConfig[tokenId].playPrice;
+        cabinetConfig[tokenId].playPrice = newPrice;
+
+        emit CabinetPriceChanged(tokenId, oldPrice, newPrice, block.timestamp);
+    }
+
+    /**
+     * @dev Set cabinet maintenance mode (enhanced Task 3.4 feature)
+     * @param tokenId Cabinet token ID
+     * @param inMaintenance Whether cabinet is in maintenance mode
+     */
+    function setMaintenanceMode(uint256 tokenId, bool inMaintenance)
+        external
+        onlyTokenOwner(tokenId)
+        cabinetExists(tokenId)
+        nonReentrant
+    {
+        bool oldStatus = cabinetMetadata[tokenId].isActive;
+
+        // Maintenance mode overrides active status
+        if (inMaintenance) {
+            cabinetMetadata[tokenId].isActive = false;
+        }
+
+        emit CabinetMaintenanceChanged(tokenId, inMaintenance, block.timestamp);
+
+        if (oldStatus != cabinetMetadata[tokenId].isActive) {
+            tuuCoin.updateCabinetStatus(tokenId, cabinetMetadata[tokenId].isActive);
+            emit CabinetStatusChanged(tokenId, cabinetMetadata[tokenId].isActive, block.timestamp);
+        }
     }
 
     /**
@@ -1225,6 +1290,90 @@ contract TuuKeepCabinet is
      */
     function getPlatformRevenue() external view returns (uint256) {
         return platformRevenue[address(0)];
+    }
+
+    /**
+     * @dev Get cabinet revenue analytics (enhanced Task 3.4 feature)
+     * @param cabinetId Cabinet token ID
+     * @return totalRevenue Total revenue generated
+     * @return totalPlays Total number of plays
+     * @return averageRevenue Average revenue per play
+     */
+    function getCabinetAnalytics(uint256 cabinetId)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256 totalRevenue, uint256 totalPlays, uint256 averageRevenue)
+    {
+        CabinetMetadata memory metadata = cabinetMetadata[cabinetId];
+        totalRevenue = metadata.totalRevenue;
+        totalPlays = metadata.totalPlays;
+
+        if (totalPlays > 0) {
+            averageRevenue = totalRevenue / totalPlays;
+        } else {
+            averageRevenue = 0;
+        }
+    }
+
+    /**
+     * @dev Batch withdraw revenue from multiple cabinets (enhanced Task 3.4 feature)
+     * @param cabinetIds Array of cabinet IDs to withdraw from
+     */
+    function batchWithdrawRevenue(uint256[] calldata cabinetIds)
+        external
+        nonReentrant
+    {
+        require(cabinetIds.length > 0, "No cabinets provided");
+        require(cabinetIds.length <= 10, "Too many cabinets"); // Gas limit protection
+
+        uint256 totalWithdrawal = 0;
+
+        for (uint256 i = 0; i < cabinetIds.length; i++) {
+            uint256 cabinetId = cabinetIds[i];
+
+            // Verify ownership
+            require(ownerOf(cabinetId) == msg.sender, "Not cabinet owner");
+
+            uint256 revenue = cabinetRevenue[cabinetId];
+            if (revenue > 0) {
+                cabinetRevenue[cabinetId] = 0;
+                totalWithdrawal += revenue;
+            }
+        }
+
+        require(totalWithdrawal > 0, "No revenue to withdraw");
+        _safeTransfer(msg.sender, totalWithdrawal);
+    }
+
+    /**
+     * @dev Get revenue forecast based on recent performance (enhanced Task 3.4 feature)
+     * @param cabinetId Cabinet token ID
+     * @param daysToForecast Number of days to forecast
+     * @return estimatedRevenue Estimated revenue for the period
+     */
+    function getRevenueForecast(uint256 cabinetId, uint256 daysToForecast)
+        external
+        view
+        cabinetExists(cabinetId)
+        returns (uint256 estimatedRevenue)
+    {
+        require(daysToForecast > 0 && daysToForecast <= 365, "Invalid forecast period");
+
+        CabinetMetadata memory metadata = cabinetMetadata[cabinetId];
+
+        if (metadata.totalPlays == 0) {
+            return 0;
+        }
+
+        // Simple forecast based on average revenue per play
+        uint256 averageRevenue = metadata.totalRevenue / metadata.totalPlays;
+
+        // Assume consistent play rate (simplified forecasting)
+        // In a real implementation, this could use more sophisticated time-series analysis
+        uint256 estimatedPlaysPerDay = metadata.totalPlays / 30; // Assume 30-day history
+
+        estimatedRevenue = averageRevenue * estimatedPlaysPerDay * daysToForecast;
     }
 
     /**
