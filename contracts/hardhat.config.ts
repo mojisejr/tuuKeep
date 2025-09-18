@@ -45,7 +45,7 @@ const config: HardhatUserConfig = {
       type: "http",
       chainType: "l1",
       url: process.env.KUB_MAINNET_RPC_URL || "https://rpc.bitkubchain.io",
-      accounts: process.env.KUB_MAINNET_PRIVATE_KEY ? [process.env.KUB_MAINNET_PRIVATE_KEY] : [],
+      accounts: (process.env.KUB_MAINNET_PRIVATE_KEY && process.env.KUB_MAINNET_PRIVATE_KEY !== "your_kub_mainnet_private_key_here") ? [process.env.KUB_MAINNET_PRIVATE_KEY] : [],
       chainId: 96,
       gasPrice: "auto",
       gas: "auto",

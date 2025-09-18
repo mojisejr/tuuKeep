@@ -1,0 +1,84 @@
+{
+  "network": "kubTestnet",
+  "chainId": 25925,
+  "timestamp": "2025-09-18T20:22:00.000Z",
+  "deployer": "0x4C06524B1bd7AA002747252257bBE0C472735A6D",
+  "deployerBalance": "20.889445708651500584 tKUB",
+  "status": "INFRASTRUCTURE_READY",
+  "deploymentMethod": "manual_viem_approach",
+  "contracts": {
+    "accessControl": "TuuKeepAccessControl - Ready for deployment",
+    "tuuCoin": "TuuCoin - Ready for deployment",
+    "randomness": "Randomness - Ready for deployment",
+    "cabinetCore": "TuuKeepCabinetCore - Ready for deployment (18,720 bytes)",
+    "cabinetGame": "TuuKeepCabinetGame - Ready for deployment (7,687 bytes)",
+    "marketplace": "TuuKeepMarketplace - Ready for deployment",
+    "tierSale": "TuuKeepTierSale - Ready for deployment"
+  },
+  "deploymentScripts": {
+    "primary": "scripts/deploy-direct-viem.ts",
+    "hardhat": "scripts/deploy-kub-hardhat.ts",
+    "ignition": "ignition/modules/TuuKeepEcosystem.ts",
+    "simple": "scripts/deploy-simple.ts"
+  },
+  "networkConfig": {
+    "rpcUrl": "https://rpc-testnet.bitkubchain.io",
+    "chainId": 25925,
+    "gasPrice": "auto",
+    "gasLimit": "auto",
+    "timeout": 60000,
+    "verified": true
+  },
+  "compilation": {
+    "solidity": "0.8.28",
+    "optimizer": true,
+    "viaIR": true,
+    "runs": 200,
+    "status": "SUCCESS"
+  },
+  "contractSizes": {
+    "TuuKeepAccessControl": "3,640 bytes",
+    "TuuCoin": "26,075 bytes",
+    "Randomness": "1,200 bytes",
+    "TuuKeepCabinetCore": "18,720 bytes (optimized)",
+    "TuuKeepCabinetGame": "7,687 bytes (optimized)",
+    "TuuKeepMarketplace": "19,024 bytes",
+    "TuuKeepTierSale": "15,907 bytes"
+  },
+  "deploymentReadiness": {
+    "nodeVersion": "v22.18.0 ✓",
+    "compilation": "SUCCESS ✓",
+    "networkConnectivity": "SUCCESS ✓",
+    "accountBalance": "SUFFICIENT ✓",
+    "contracts": "OPTIMIZED ✓",
+    "scripts": "READY ✓"
+  },
+  "blockers": {
+    "bytecode_compatibility": {
+      "issue": "RPC parameter validation failing on bytecode submission",
+      "potential_causes": [
+        "KUB testnet RPC strict parameter validation",
+        "viem bytecode format incompatibility",
+        "Contract compilation artifact format mismatch"
+      ],
+      "next_steps": [
+        "Test with alternative RPC endpoints",
+        "Use Hardhat native deployment instead of viem",
+        "Verify bytecode format with KUB documentation"
+      ]
+    }
+  },
+  "estimatedCosts": {
+    "totalGasEstimate": "~22.9M gas",
+    "costEstimate": "~0.025 tKUB",
+    "deploymentTime": "10-15 minutes",
+    "verificationTime": "5-10 minutes"
+  },
+  "nextSteps": [
+    "Resolve bytecode compatibility issue",
+    "Execute actual deployment",
+    "Verify all contracts on KubScan",
+    "Test cross-contract integration",
+    "Document final results"
+  ]
+}
