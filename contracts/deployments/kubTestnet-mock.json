@@ -1,0 +1,42 @@
+{
+  "network": "kubTestnet",
+  "chainId": 25925,
+  "timestamp": "2025-09-18T15:30:00.000Z",
+  "deployer": "0x4C06524B1bd7AA002747252257bBE0C472735A6D",
+  "contracts": {
+    "accessControl": "0x1234567890123456789012345678901234567890",
+    "tuuCoin": "0x2345678901234567890123456789012345678901",
+    "randomness": "0x3456789012345678901234567890123456789012",
+    "cabinetCore": "0x4567890123456789012345678901234567890123",
+    "cabinetGame": "0x5678901234567890123456789012345678901234",
+    "marketplace": "0x6789012345678901234567890123456789012345",
+    "tierSale": "0x7890123456789012345678901234567890123456"
+  },
+  "gasUsed": {
+    "accessControl": "2500000",
+    "tuuCoin": "3200000",
+    "randomness": "800000",
+    "cabinetCore": "4800000",
+    "cabinetGame": "3600000",
+    "marketplace": "4200000",
+    "tierSale": "3800000"
+  },
+  "blockNumbers": {
+    "accessControl": 25046300,
+    "tuuCoin": 25046301,
+    "randomness": 25046302,
+    "cabinetCore": 25046303,
+    "cabinetGame": 25046304,
+    "marketplace": 25046305,
+    "tierSale": 25046306
+  },
+  "transactionHashes": {
+    "accessControl": "0xa1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+    "tuuCoin": "0xb2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567",
+    "randomness": "0xc3d4e5f6789012345678901234567890abcdef1234567890abcdef12345678",
+    "cabinetCore": "0xd4e5f6789012345678901234567890abcdef1234567890abcdef123456789",
+    "cabinetGame": "0xe5f6789012345678901234567890abcdef1234567890abcdef12345678901",
+    "marketplace": "0xf6789012345678901234567890abcdef1234567890abcdef1234567890123",
+    "tierSale": "0x6789012345678901234567890abcdef1234567890abcdef12345678901234"
+  }
+}
