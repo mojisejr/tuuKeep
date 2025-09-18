@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./TuuKeepCabinet.sol";
+import "./interfaces/ITuuKeepCabinetCore.sol";
 import "./Utils/Security/ValidationLib.sol";
 
 /**
@@ -44,7 +44,7 @@ contract TuuKeepTierSale is AccessControl, ReentrancyGuard, Pausable {
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN_ROLE");
 
     /// @dev Core contract references
-    TuuKeepCabinet public immutable cabinetContract;
+    ITuuKeepCabinetCore public immutable cabinetContract;
     address public immutable platformTreasury;
 
     /// @dev Pricing tier structure
@@ -141,7 +141,7 @@ contract TuuKeepTierSale is AccessControl, ReentrancyGuard, Pausable {
         _platformTreasury.validateAddress("platform treasury");
         _admin.validateAddress("admin");
 
-        cabinetContract = TuuKeepCabinet(_cabinetContract);
+        cabinetContract = ITuuKeepCabinetCore(_cabinetContract);
         platformTreasury = _platformTreasury;
 
         // Grant roles
@@ -285,8 +285,9 @@ contract TuuKeepTierSale is AccessControl, ReentrancyGuard, Pausable {
         uint256 netRevenue = tier.price - platformFee;
         totalRevenue += netRevenue;
 
-        // Mint cabinet NFT
-        cabinetId = cabinetContract.mintCabinet(msg.sender, cabinetName);
+        // Mint cabinet NFT with default play price (can be changed later by owner)
+        uint256 defaultPlayPrice = 1e18; // 1 KUB default
+        cabinetId = cabinetContract.mintCabinet(msg.sender, cabinetName, defaultPlayPrice);
 
         // Record purchase
         uint256 purchaseId = nextPurchaseId++;

@@ -8,7 +8,7 @@ import "./Utils/Security/TuuKeepAccessControl.sol";
 import "./Utils/Security/TuuKeepReentrancyGuard.sol";
 import "./Utils/Security/ValidationLib.sol";
 import "./Utils/TuuKeepErrors.sol";
-import "./TuuKeepCabinet.sol";
+import "./interfaces/ITuuKeepCabinetCore.sol";
 
 /**
  * @title TuuKeepMarketplace
@@ -25,7 +25,7 @@ contract TuuKeepMarketplace is
     bytes32 public constant EMERGENCY_RESPONDER_ROLE = keccak256("EMERGENCY_RESPONDER_ROLE");
 
     // Contract integrations
-    TuuKeepCabinet public immutable cabinetContract;
+    ITuuKeepCabinetCore public immutable cabinetContract;
     TuuKeepAccessControl public immutable accessControl;
 
     // Core marketplace structures
@@ -174,7 +174,7 @@ contract TuuKeepMarketplace is
         ValidationLib.validateAddress(_accessControl, "access control");
         ValidationLib.validateAddress(_platformFeeRecipient, "platform fee recipient");
 
-        cabinetContract = TuuKeepCabinet(_cabinetContract);
+        cabinetContract = ITuuKeepCabinetCore(_cabinetContract);
         accessControl = TuuKeepAccessControl(_accessControl);
 
         // Initialize marketplace configuration
