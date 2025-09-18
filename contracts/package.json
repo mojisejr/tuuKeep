@@ -3,18 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npx hardhat compile",
-    "test": "npx hardhat test",
-    "test:solidity": "npx hardhat test solidity",
-    "test:nodejs": "npx hardhat test nodejs",
-    "test:coverage": "npx hardhat test --coverage",
-    "deploy:local": "npx hardhat ignition deploy ignition/modules/Counter.ts",
-    "deploy:sepolia": "npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts",
-    "deploy:kub-testnet": "npx hardhat ignition deploy --network kubTestnet ignition/modules/Counter.ts",
-    "deploy:kub-mainnet": "npx hardhat ignition deploy --network kubMainnet ignition/modules/Counter.ts",
-    "verify:sepolia": "npx hardhat verify --network sepolia",
-    "verify:kub-testnet": "npx hardhat verify --network kubTestnet",
-    "verify:kub-mainnet": "npx hardhat verify --network kubMainnet"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
@@ -23,18 +12,14 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.3",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
-    "@types/chai": "^5.2.2",
-    "@types/chai-as-promised": "^8.0.2",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^20.19.3",
-    "chai": "^6.0.1",
-    "chai-as-promised": "^8.0.2",
+    "@types/node": "^22.18.3",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.6",
     "typescript": "~5.8.0",
     "viem": "^2.37.6"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0"
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.2"
   }
 }
