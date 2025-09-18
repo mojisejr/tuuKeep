@@ -71,11 +71,7 @@ library ValidationLib {
      * @return true if the address is a contract, false otherwise
      */
     function _isContract(address addr) private view returns (bool) {
-        uint256 size;
-        assembly {
-            size := extcodesize(addr)
-        }
-        return size > 0;
+        return addr.code.length > 0;
     }
 
     /**
