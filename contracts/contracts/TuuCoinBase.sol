@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./Utils/Security/TuuKeepAccessControl.sol";
+import "./Utils/Security/ValidationLib.sol";
 
 /**
  * @title TuuCoinBase
@@ -53,20 +54,12 @@ contract TuuCoinBase is ERC20, ERC20Burnable, AccessControl, Pausable {
         address _accessControl,
         address _initialAdmin
     ) ERC20("TuuCoin", "TUU") {
-        require(_accessControl != address(0), "TuuCoinBase: invalid access control address");
-        require(_initialAdmin != address(0), "TuuCoinBase: invalid admin address");
+        ValidationLib.validateContract(_accessControl, "access control");
+        ValidationLib.validateAddress(_initialAdmin, "initial admin");
 
         accessControl = TuuKeepAccessControl(_accessControl);
-
-        // Grant roles to initial admin
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
-        _grantRole(PLATFORM_ADMIN_ROLE, _initialAdmin);
-        _grantRole(MINTER_ROLE, _initialAdmin);
-        _grantRole(EMERGENCY_RESPONDER_ROLE, _initialAdmin);
-
-        // Initialize supply management
-        adjustableMaxSupply = MAX_SUPPLY;
-        isDynamicSupplyEnabled = false;
+        _initializeRoles(_initialAdmin);
+        _initializeSupplyManagement();
     }
 
     /**
@@ -306,5 +299,17 @@ contract TuuCoinBase is ERC20, ERC20Burnable, AccessControl, Pausable {
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _initializeRoles(address admin) private {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PLATFORM_ADMIN_ROLE, admin);
+        _grantRole(MINTER_ROLE, admin);
+        _grantRole(EMERGENCY_RESPONDER_ROLE, admin);
+    }
+
+    function _initializeSupplyManagement() private {
+        adjustableMaxSupply = MAX_SUPPLY;
+        isDynamicSupplyEnabled = false;
     }
 }

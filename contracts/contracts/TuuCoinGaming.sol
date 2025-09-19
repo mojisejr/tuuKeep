@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./Utils/Security/TuuKeepAccessControl.sol";
+import "./Utils/Security/ValidationLib.sol";
 
 /**
  * @title TuuCoinGaming
@@ -65,19 +66,23 @@ contract TuuCoinGaming is AccessControl, Pausable {
         address _accessControl,
         address _initialAdmin
     ) {
-        require(_accessControl != address(0), "TuuCoinGaming: invalid access control address");
-        require(_initialAdmin != address(0), "TuuCoinGaming: invalid admin address");
+        ValidationLib.validateContract(_accessControl, "access control");
+        ValidationLib.validateAddress(_initialAdmin, "initial admin");
 
         accessControl = TuuKeepAccessControl(_accessControl);
+        _initializeRoles(_initialAdmin);
+        _initializeEmissionConfig();
+    }
 
-        // Grant roles to initial admin
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
-        _grantRole(PLATFORM_ADMIN_ROLE, _initialAdmin);
-        _grantRole(EMISSION_MANAGER_ROLE, _initialAdmin);
-        _grantRole(EMERGENCY_RESPONDER_ROLE, _initialAdmin);
-        _grantRole(CABINET_OPERATOR_ROLE, _initialAdmin);
+    function _initializeRoles(address admin) private {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(PLATFORM_ADMIN_ROLE, admin);
+        _grantRole(EMISSION_MANAGER_ROLE, admin);
+        _grantRole(EMERGENCY_RESPONDER_ROLE, admin);
+        _grantRole(CABINET_OPERATOR_ROLE, admin);
+    }
 
-        // Initialize emission configuration
+    function _initializeEmissionConfig() private {
         emissionConfig = EmissionConfig({
             baseRate: 1 * 10**18,      // 1 TUU base rate
             maxRate: 10 * 10**18,      // 10 TUU max rate
