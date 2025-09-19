@@ -1,11 +1,11 @@
 {
   "network": "kub-testnet",
-  "timestamp": "2025-09-19T03:43:29.168Z",
+  "timestamp": "2025-09-19T08:22:30.312Z",
   "step": "1-foundation",
   "contracts": {
-    "TuuKeepAccessControl": "0x440d8d9ee028342943b976b6a3325220f05f4e26",
-    "TuuCoinBase": "0x88c0041034a0423ed98602e801cf6b27e103118a",
-    "Randomness": "0x62a4c0a3ad3299dae3650dc0f5ed17bee8829901"
+    "TuuKeepAccessControl": "0xcb5d2e4a871a9f5f0cb6e38297b65c4d965e44e3",
+    "TuuCoinBase": "0xa8192eba1d0ff0fbb2d88f95953b05489bef62f7",
+    "Randomness": "0x37027818ecf8dc6c84e519a45afd767d4658acdb"
   },
   "deployer": "0x4C06524B1bd7AA002747252257bBE0C472735A6D"
 }
