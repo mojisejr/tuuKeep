@@ -111,26 +111,12 @@ contract TuuKeepMarketplaceFees is AccessControl, Pausable {
         address _accessControl,
         address _feeRecipient
     ) {
-        require(_accessControl != address(0), "TuuKeepMarketplaceFees: invalid access control address");
-        require(_feeRecipient != address(0), "TuuKeepMarketplaceFees: invalid fee recipient");
+        ValidationLib.validateContract(_accessControl, "access control");
+        ValidationLib.validateAddress(_feeRecipient, "fee recipient");
 
         accessControl = TuuKeepAccessControl(_accessControl);
-
-        // Initialize fee configuration
-        feeConfig = FeeConfig({
-            platformFeeRate: DEFAULT_PLATFORM_FEE_RATE,
-            feeRecipient: _feeRecipient,
-            minFeeAmount: MIN_FEE_AMOUNT,
-            dynamicFeesEnabled: false
-        });
-
-        // Grant admin roles
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MARKETPLACE_ADMIN_ROLE, msg.sender);
-        _grantRole(EMERGENCY_RESPONDER_ROLE, msg.sender);
-        _grantRole(FEE_MANAGER_ROLE, msg.sender);
-
-        // Initialize default fee tiers
+        _initializeFeeConfig(_feeRecipient);
+        _initializeRoles();
         _initializeDefaultFeeTiers();
     }
 
@@ -443,6 +429,22 @@ contract TuuKeepMarketplaceFees is AccessControl, Pausable {
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _initializeFeeConfig(address _feeRecipient) private {
+        feeConfig = FeeConfig({
+            platformFeeRate: DEFAULT_PLATFORM_FEE_RATE,
+            feeRecipient: _feeRecipient,
+            minFeeAmount: MIN_FEE_AMOUNT,
+            dynamicFeesEnabled: false
+        });
+    }
+
+    function _initializeRoles() private {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MARKETPLACE_ADMIN_ROLE, msg.sender);
+        _grantRole(EMERGENCY_RESPONDER_ROLE, msg.sender);
+        _grantRole(FEE_MANAGER_ROLE, msg.sender);
     }
 
     /**

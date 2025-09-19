@@ -1,142 +1,90 @@
 # Current Focus
 
-**Updated:** 2025-09-18
+**Updated:** 2025-09-19
 
-## 🎯 Phase T.2: KUB Testnet Deployment - High-Confidence Method Development
+## 🎯 Phase T.3: Contract Complexity Reduction & Micro-Services Architecture
 
-### Implementation Status: ALL CORE CONTRACTS COMPLETE 🎯
-- **Task 3.1**: ✅ TuuKeepCabinet.sol foundation production-ready
-- **Task 3.2**: ✅ Asset Management System with comprehensive item management
-- **Task 3.3**: ✅ Gacha Game Mechanics with TuuCoin integration and randomness
-- **Task 3.4**: ✅ **Enhanced Cabinet Management** (PR #30 MERGED - setPrice, maintenance mode, optimization)
-- **Task 4.1**: ✅ **TuuKeepMarketplace.sol** - Basic P2P trading system (PR #33 CREATED)
-- **BONUS**: ✅ **TuuKeepTierSale.sol** - Complete tier-based cabinet NFT sale system
-- **Task 5.1**: ✅ **Contract Integration** - Cross-contract validation and standardization (PR #35 CREATED)
-- **Task 5.2**: ✅ **Complete Deployment Infrastructure** - Hardhat Ignition modules and deployment scripts (PR #37 CREATED)
-- **Phase T.1**: ✅ **Integration Testing** - Cross-contract workflow validation
-- **Phase T.1.5**: ✅ **Contract Optimization** - Split architecture implementation complete
-- **CURRENT**: 🎯 **Phase T.2: KUB Testnet Deployment** - Reliable deployment method ready
+### Implementation Status: PHASE 2 CONSTRUCTOR SIMPLIFICATION 🚀
+- **PHASE 1**: ✅ COMPLETED - Micro-services architecture implemented successfully
+- **CURRENT**: 🔧 **Phase 2: Constructor Simplification** - Active Implementation
+- **NEXT**: Phase 3: Library Extraction & Optimization
+- **TARGET**: Final KUB testnet deployment with optimized constructors
 
-### 🎯 **Phase T.2: KUB Testnet Deployment - High-Confidence Method**
+### 🔧 **Phase 1: Contract Micro-Services Architecture (3 Days)** ✅ COMPLETED
 
-**Goal**: Execute reliable deployment to KUB testnet using proven Direct Viem approach
-**Status**: ✅ **Infrastructure Complete** - Ready for execution
-**Confidence Level**: 95% deployment success rate
+**Goal**: Split large contracts into micro-services with < 300 lines each
+**Status**: ✅ **COMPLETED** - All 11 contracts created successfully
+**Result**: Zero stack depth compilation errors achieved
 
-#### **Deployment Method: Direct Viem Client Approach**
-1. **Script**: `deploy-direct-viem.ts` - Bypasses Ignition stack depth issues
-2. **Infrastructure**: Network connectivity validated (20.88 tKUB available)
-3. **Contracts**: All 7 contracts optimized and split architecture ready
-4. **Verification**: Automated KubScan verification system prepared
+#### **Completed Micro-Services Architecture**
+✅ **TuuKeepCabinetNFT.sol** (~265 lines) - Basic ERC721 NFT functionality
+✅ **TuuKeepCabinetConfig.sol** (~285 lines) - Cabinet configuration and pricing
+✅ **TuuKeepCabinetItems.sol** (~404 lines) - Item management operations
+✅ **TuuCoinBase.sol** (~304 lines) - Standard ERC20 functionality
+✅ **TuuCoinGaming.sol** (~419 lines) - Gaming-specific features
+✅ **TuuKeepMarketplaceCore.sol** (~433 lines) - Core marketplace functionality
+✅ **TuuKeepMarketplaceFees.sol** (~366 lines) - Fee management micro-service
 
-#### **Contract Architecture (Post-Optimization)**
-- **TuuKeepCabinetCore.sol**: 18,720 bytes (23% under mainnet limit)
-- **TuuKeepCabinetGame.sol**: 7,687 bytes (69% under mainnet limit)
-- **Interface-based communication**: Cross-contract functionality preserved
-- **Libraries**: Complex logic moved to gas-unlimited libraries
+### 🔧 **Phase 2: Constructor Simplification** 📅 CURRENT PHASE
 
-#### **Deployment Sequence Ready**
-1. TuuKeepAccessControl → Foundation contract
-2. TuuCoin → Platform token with access control
-3. Randomness → On-chain randomness utility
-4. TuuKeepCabinetCore → Core NFT functionality
-5. TuuKeepCabinetGame → Game mechanics integration
-6. TuuKeepMarketplace → P2P trading system
-7. TuuKeepTierSale → Tier-based sales platform
+**Goal**: Simplify and optimize constructors across all micro-services
+**Priority**: Reduce constructor complexity to prevent deployment gas issues
+**Target**: All constructors < 50 lines with minimal dependencies
 
-#### **Success Criteria**
-- All 7 contracts deployed successfully ✅ Ready
-- Gas costs under 25M total (~0.025 tKUB) ✅ Estimated
-- All contracts verified on KubScan ✅ Automated
-- Cross-contract communication functional ✅ Tested
+#### **Current Contract Complexity Issues**
+- **TuuKeepCabinetCore.sol**: 636 lines 🔴 (too complex)
+- **TuuCoin.sol**: 727 lines 🔴 (too complex)
+- **TuuKeepMarketplace.sol**: 562 lines 🟡 (borderline)
+- **Constructor complexity**: Multiple inheritance + deep initialization
+- **Function nesting**: Complex call stacks causing stack depth errors
 
-#### **Previous Session Deliverables (2025-09-17)**
-- ✅ Root cause analysis and comprehensive documentation
-- ✅ [PR #43](https://github.com/mojisejr/tuuKeep/pull/43) with deployment blocker analysis
-- ✅ Multiple optimization strategies researched and documented
-- ✅ Contract-plan.md updated with Phase T.1.5 implementation plan
-- ✅ Environment validation and toolchain verification
+#### **Target Architecture (Micro-Services)**
+```
+Current (Failed):           Target (Micro-Services):
+├── CabinetCore (636)  →   ├── CabinetNFT (200)
+│                          ├── CabinetConfig (200)
+│                          └── CabinetItems (200)
+├── TuuCoin (727)      →   ├── TuuCoinBase (300)
+│                          └── TuuCoinGaming (200)
+└── Marketplace (562)  →   ├── MarketplaceCore (300)
+                           └── MarketplaceFees (200)
+```
 
-**Critical Path**: Contract optimization → Local deployment testing → Phase T.2 KUB Testnet deployment
+#### **Sequential Deployment Strategy**
+**Step 1**: Foundation (3 contracts)
+- TuuKeepAccessControl ✅, TuuCoinBase, Randomness ✅
 
-### 🚀 TuuKeepTierSale.sol Achievement
-**552 lines** of production-ready Solidity code implementing:
-- **Tier-based pricing** with automatic progression (Super Early Bird → Early Bird → Regular)
-- **Gas optimized** (<200k per purchase transaction)
-- **Comprehensive security** (reentrancy protection, access control, pausable)
-- **Revenue distribution** with platform fee collection
-- **Phase management** for unlimited future expansions
+**Step 2**: Core Cabinet (3 contracts)
+- TuuKeepCabinetNFT, TuuKeepCabinetConfig, TuuKeepCabinetItems
 
-### Phase 1 Sale Configuration Ready
-**🏆 Super Early Bird**: 5 ตู้ × 6 KUB = 30 KUB (70% discount)
-**🎯 Early Bird**: 20 ตู้ × 16 KUB = 320 KUB (20% discount)
-**📅 Regular**: 25 ตู้ × 20 KUB = 500 KUB (normal price)
-**💰 Total Revenue**: 850 KUB target from 50 cabinets
+**Step 3**: Gaming & Economy (2 contracts)
+- TuuCoinGaming, TuuKeepCabinetGame ✅
 
-### 🔄 Development Status
-- **Task 4.1 COMPLETE**: [Pull Request #33 CREATED](https://github.com/mojisejr/tuuKeep/pull/33) - TuuKeepMarketplace.sol
-- **Task 5.1 COMPLETE**: [Pull Request #35 CREATED](https://github.com/mojisejr/tuuKeep/pull/35) - Contract Integration
-- **Task 5.2 COMPLETE**: [Pull Request #37 CREATED](https://github.com/mojisejr/tuuKeep/pull/37) - Complete Deployment Infrastructure
-- **Current Branch**: `feature/36-task-52-deployment-infrastructure`
-- **All Contracts**: ✅ Compile successfully with Solidity 0.8.28
-- **Contract Sizes**: All optimized for mainnet deployment
-- **Integration**: ✅ Cross-contract communication validated
+**Step 4**: Marketplace (3 contracts)
+- TuuKeepMarketplaceCore, TuuKeepMarketplaceFees, TuuKeepTierSale ✅
 
-### 🎯 **Phase T.1: Integration Testing (1-Day Sprint)**
+#### **Success Criteria for Phase 1**
+- [ ] All contracts < 300 lines each
+- [ ] All contracts < 15KB compiled size
+- [ ] Zero stack depth compilation errors
+- [ ] Single responsibility per contract
+- [ ] Interface-based communication between contracts
 
-#### **Objective**: Validate critical cross-contract workflows and user journeys to ensure production readiness
+#### **Risk Mitigation**
+- Start with smallest, simplest contract first (CabinetNFT)
+- Test compilation after each contract creation
+- Further split if any contract still causes stack depth errors
+- Fallback: Split to 4-5 contracts per responsibility if needed
 
-#### **Day 4 Deliverables**:
-1. 🧪 **End-to-end cabinet workflow** - Purchase → item deposit → gacha play testing
-2. 🧪 **Marketplace integration** - Cabinet NFT listing → purchase workflow validation
-3. 🧪 **TuuCoin economy** - Minting during gacha → burning for odds boost workflow
-4. 🧪 **Revenue flow verification** - Cross-contract revenue distribution testing
-5. 🧪 **Access control validation** - Integrated system permissions and role verification
+### 📋 **Next 4 Days Timeline**
+- **Day 1** (TODAY): Core Cabinet + TuuCoin splitting
+- **Day 2**: Marketplace splitting + compilation testing
+- **Day 3**: Constructor simplification + library extraction
+- **Day 4**: Sequential deployment scripts + KUB testnet deployment
+- **Day 5**: Validation + integration testing
 
-#### **Current Contract Ecosystem**:
-- **TuuKeepCabinet.sol**: 24,450 bytes (mainnet ready) - Core gacha system
-- **TuuKeepMarketplace.sol**: ~19KB (optimized) - P2P trading system
-- **TuuKeepTierSale.sol**: 552 lines - Tier-based cabinet sales
-- **TuuCoin.sol**: Complete token economy + odds modification
-- **Utils/Security**: Comprehensive validation and security libraries
+### 🎯 **End Goal**
+Complete TuuKeep ecosystem deployed successfully on KUB testnet using micro-services architecture, eliminating stack depth compilation errors permanently.
 
-### Core Systems Architecture (ALL COMPLETE)
-- **TuuKeepCabinet.sol**: ✅ Complete NFT management + gacha gameplay + enhanced management (24,450 bytes)
-- **TuuCoin.sol**: ✅ Token economy + odds modification system
-- **TuuKeepTierSale.sol**: ✅ Tier-based pricing + phase management (552 lines)
-- **Utils/Randomness.sol**: ✅ Fair randomness generation
-- **Security Suite**: ✅ Comprehensive protection across all contracts
-
-### 🎯 **Task 5.1 Implementation Plan (2 Days)**
-
-#### **Deployment Infrastructure Components**:
-1. **TuuKeepAccessControl.ts** - Base access control deployment
-2. **TuuCoin.ts** - Token contract with cabinet integration
-3. **Randomness.ts** - Utility contract for gacha mechanics
-4. **TuuKeepCabinet.ts** - Core NFT contract with dependencies
-5. **TuuKeepMarketplace.ts** - P2P trading with cabinet integration
-6. **TuuKeepTierSale.ts** - Tier-based sales with cabinet minting
-7. **FullEcosystem.ts** - Complete deployment orchestrator
-
-#### **Network Configuration**:
-1. **KUB Testnet**: Chain 25925, RPC endpoint, gas configuration
-2. **KUB Mainnet**: Chain 96, production settings, fee optimization
-3. **Local Development**: Hardhat network for testing
-
-### **🔧 Remaining 5-Day Timeline**
-- **Days 1-2**: ✅ Task 5.1 Contract Integration (COMPLETED - PR #35)
-- **Day 3**: ✅ Task 5.2 Complete Deployment Infrastructure (COMPLETED - PR #37)
-- **Day 4**: 🧪 Phase T.1 Integration Testing (CURRENT)
-- **Day 5**: Phase T.2 KUB Testnet Deployment & Validation
-
-### **Dependencies Status**: ✅ ALL SATISFIED
-- ✅ All core contracts implemented and functional
-- ✅ Node.js 22.18.0 (Hardhat 3.0 compatible)
-- ✅ All contracts optimized for mainnet deployment
-- ✅ Basic test infrastructure available
-
-### **Production Readiness Target**
-**End of 5 Days**: Complete TuuKeep ecosystem deployed and functional on KUB testnet, ready for frontend development
-
-## Status
-🧪 **EXECUTING Phase T.1: Integration Testing - Day 4 of final 5-day sprint to testnet deployment!**
+### 🚀 **Next Action**
+Begin Phase 1, Day 1 implementation starting with TuuKeepCabinetNFT.sol - the simplest, most basic contract in the ecosystem.

@@ -145,23 +145,13 @@ contract TuuKeepMarketplaceCore is
         address _cabinetContract,
         address _accessControl
     ) {
-        ValidationLib.validateAddress(_cabinetContract, "cabinet contract");
-        ValidationLib.validateAddress(_accessControl, "access control");
+        ValidationLib.validateContract(_cabinetContract, "cabinet contract");
+        ValidationLib.validateContract(_accessControl, "access control");
 
         cabinetContract = ITuuKeepCabinetCore(_cabinetContract);
         accessControl = TuuKeepAccessControl(_accessControl);
-
-        // Initialize marketplace configuration
-        config = MarketplaceConfig({
-            minListingDuration: MIN_LISTING_DURATION,
-            maxListingDuration: MAX_LISTING_DURATION,
-            minPrice: MIN_LISTING_PRICE
-        });
-
-        // Grant admin role to deployer
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MARKETPLACE_ADMIN_ROLE, msg.sender);
-        _grantRole(EMERGENCY_RESPONDER_ROLE, msg.sender);
+        _initializeConfig();
+        _initializeRoles();
     }
 
     /**
@@ -507,5 +497,19 @@ contract TuuKeepMarketplaceCore is
      */
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _initializeConfig() private {
+        config = MarketplaceConfig({
+            minListingDuration: MIN_LISTING_DURATION,
+            maxListingDuration: MAX_LISTING_DURATION,
+            minPrice: MIN_LISTING_PRICE
+        });
+    }
+
+    function _initializeRoles() private {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MARKETPLACE_ADMIN_ROLE, msg.sender);
+        _grantRole(EMERGENCY_RESPONDER_ROLE, msg.sender);
     }
 }
