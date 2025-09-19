@@ -1,0 +1,62 @@
+{
+  "network": "kub-testnet",
+  "chainId": 25925,
+  "lastUpdated": "2025-09-19T14:53:24.296Z",
+  "evmVersion": "london",
+  "status": "foundation-complete",
+  "deployer": "0x4C06524B1bd7AA002747252257bBE0C472735A6D",
+  "successfulDeployments": {
+    "TuuKeepAccessControl": {
+      "address": "0xb6144a66b1553b8028e60e2ccfff6bfff74b270e",
+      "transactionHash": "0x5b1f37e9a32194cdacac377507b08e99fb9d74531b604740d5674e98b5b0d27f",
+      "gasUsed": 978184,
+      "blockNumber": 25064114,
+      "status": "SUCCESS",
+      "verified": true,
+      "kubscanUrl": "https://testnet.kubscan.com/address/0xb6144a66b1553b8028e60e2ccfff6bfff74b270e"
+    },
+    "Randomness": {
+      "address": "0x85b72cd07d70b9f2def43a386cbd56996a2d2117",
+      "transactionHash": "0xaab61d99a540fd5eae464f156362ab65fc304e21e78617f9507404fb94336c65",
+      "gasUsed": 663534,
+      "status": "SUCCESS",
+      "verified": true,
+      "deploymentMethod": "raw-bytecode",
+      "kubscanUrl": "https://testnet.kubscan.com/address/0x85b72cd07d70b9f2def43a386cbd56996a2d2117"
+    }
+  },
+  "failedDeployments": {
+    "TuuCoinBase": {
+      "reason": "ValidationLib contract validation fails during constructor execution",
+      "error": "EstimateGasExecutionError: Execution reverted for an unknown reason",
+      "attempts": 5,
+      "lastAttempt": "2025-09-19T08:50:00.000Z",
+      "requiresFixing": true
+    }
+  },
+  "criticalDiscovery": {
+    "issue": "KUB Testnet EVM Version Incompatibility",
+    "summary": "BitkubChain testnet does not support EVM Shanghai upgrade features (PUSH0 opcode 0x5f)",
+    "solution": "Set evmVersion: 'london' in hardhat.config.ts",
+    "impactedContracts": "All modern Solidity contracts (0.8.20+) with Shanghai/Cancun EVM targets",
+    "gasUsageIndicator": "6M gas usage (hitting limits) vs ~1M gas for London target",
+    "documentationUrl": "/docs/retrospective/session-2025-09-19-bitkub-evm-compatibility.md"
+  },
+  "deploymentProgress": {
+    "totalFoundationContracts": 3,
+    "successfulDeployments": 2,
+    "failedDeployments": 1,
+    "successRate": "67%",
+    "nextSteps": [
+      "Fix TuuCoinBase validation issue (ValidationLib contract check)",
+      "Deploy remaining contract steps (2-4) with library dependencies",
+      "Complete integration testing with deployed foundation contracts"
+    ]
+  },
+  "technicalNotes": {
+    "evmCompatibility": "KUB testnet requires London EVM target, not Shanghai",
+    "gasEstimation": "Use proper gas estimation (~1M gas typical) vs fixed 6M limits",
+    "deploymentVerification": "Always verify contract bytecode exists, not just transaction success",
+    "validationLibIssue": "Constructor-time contract validation may fail on same-transaction deployment"
+  }
+}

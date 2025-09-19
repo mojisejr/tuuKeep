@@ -13,6 +13,7 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
       viaIR: true,
+      evmVersion: "london", // Use London instead of Shanghai to avoid PUSH0 opcode
     },
   },
   networks: {
