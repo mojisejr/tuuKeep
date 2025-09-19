@@ -1,0 +1,11 @@
+{
+  "network": "kub-testnet",
+  "timestamp": "2025-09-19T03:43:29.168Z",
+  "step": "1-foundation",
+  "contracts": {
+    "TuuKeepAccessControl": "0x440d8d9ee028342943b976b6a3325220f05f4e26",
+    "TuuCoinBase": "0x88c0041034a0423ed98602e801cf6b27e103118a",
+    "Randomness": "0x62a4c0a3ad3299dae3650dc0f5ed17bee8829901"
+  },
+  "deployer": "0x4C06524B1bd7AA002747252257bBE0C472735A6D"
+}
