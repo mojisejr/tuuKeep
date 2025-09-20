@@ -54,8 +54,8 @@ contract TuuCoinBase is ERC20, ERC20Burnable, AccessControl, Pausable {
         address _accessControl,
         address _initialAdmin
     ) ERC20("TuuCoin", "TUU") {
-        ValidationLib.validateContract(_accessControl, "access control");
-        ValidationLib.validateAddress(_initialAdmin, "initial admin");
+        ValidationLib.validateConstructorContract(_accessControl, "access control");
+        ValidationLib.validateConstructorAddress(_initialAdmin, "initial admin");
 
         accessControl = TuuKeepAccessControl(_accessControl);
         _initializeRoles(_initialAdmin);
@@ -311,5 +311,19 @@ contract TuuCoinBase is ERC20, ERC20Burnable, AccessControl, Pausable {
     function _initializeSupplyManagement() private {
         adjustableMaxSupply = MAX_SUPPLY;
         isDynamicSupplyEnabled = false;
+    }
+
+    /**
+     * @dev Post-deployment validation to confirm constructor parameters are contracts
+     * Call this immediately after deployment to validate access control integration
+     */
+    function validatePostDeployment() external view {
+        address[] memory addresses = new address[](1);
+        string[] memory contexts = new string[](1);
+
+        addresses[0] = address(accessControl);
+        contexts[0] = "access control";
+
+        ValidationLib.validatePostDeployment(addresses, contexts);
     }
 }

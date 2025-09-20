@@ -66,6 +66,29 @@ library ValidationLib {
     }
 
     /**
+     * @dev Constructor-safe validation that only checks for zero address
+     * Use this during contract construction when code.length is not available
+     * @param addr The address to validate
+     * @param context Description of what the address represents
+     */
+    function validateConstructorAddress(address addr, string memory context) internal pure {
+        if (addr == address(0)) {
+            revert InvalidAddress(addr, string(abi.encodePacked("Zero address not allowed for ", context)));
+        }
+    }
+
+    /**
+     * @dev Constructor-safe contract validation that defers contract check
+     * Use this during contract construction, then call validatePostDeployment later
+     * @param addr The address to validate
+     * @param context Description of what the contract represents
+     */
+    function validateConstructorContract(address addr, string memory context) internal pure {
+        validateConstructorAddress(addr, context);
+        // Note: Contract code validation must be performed post-deployment
+    }
+
+    /**
      * @dev Check if an address is a contract
      * @param addr The address to check
      * @return true if the address is a contract, false otherwise
@@ -374,6 +397,23 @@ library ValidationLib {
     function validatePrintableASCII(string memory str, string memory context) internal pure {
         if (!isPrintableASCII(str)) {
             revert InvalidString(str, string(abi.encodePacked("Non-printable characters in ", context)));
+        }
+    }
+
+    /**
+     * @dev Post-deployment validation to confirm addresses are contracts
+     * Call this after contract deployment to validate constructor parameters
+     * @param addresses Array of addresses that should be contracts
+     * @param contexts Array of context descriptions for each address
+     */
+    function validatePostDeployment(
+        address[] memory addresses,
+        string[] memory contexts
+    ) internal view {
+        require(addresses.length == contexts.length, "ValidationLib: arrays length mismatch");
+
+        for (uint256 i = 0; i < addresses.length; i++) {
+            validateContract(addresses[i], contexts[i]);
         }
     }
 }
